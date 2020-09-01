@@ -50,11 +50,22 @@ class EmailConfirmation(Resource):
         try:
             email_confirmation = s.loads(token, salt='email-confirm', max_age=1000)
             if email_confirmation:
+                user = mongo.db.users.find_one({'email': email_confirmation})
+                if user:
+                    mongo.db.users.update_one({'email': email_confirmation}, {
+                        '$set':{
+                            'is_verified': True
+                        }
+                    })
+                    return {
+                        "message": "Login now",
+                        "stage": "set_password"
+                    }
                 return {
-                    "message": "Ask the user to set the password",
-                    "email": email_confirmation
+                    "message": "User not found"
                 }
         except SignatureExpired:
             return {"message": "The verification token has expired now. Please register again."}
         except BadTimeSignature:
             return {"message": "The verification token is invalid"}
+
