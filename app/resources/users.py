@@ -31,6 +31,7 @@ class UserRegister(Resource):
         _hased_password = generate_password_hash(data['password'])      # Password hasing
         id = mongo.db.users.insert({
             'email': data['email'],
+            'password':_hased_password,
             'is_verified': False
         })                           # insert the data in the collection users 
         token = s.dumps(data['email'], salt='email-confirm')
@@ -45,10 +46,11 @@ class UserRegister(Resource):
         return {"message": "User added successfully! "}, 200
 
 
+# Email confirmation of the user 
 class EmailConfirmation(Resource):
     def get(self, token):
         try:
-            email_confirmation = s.loads(token, salt='email-confirm', max_age=1000)
+            email_confirmation = s.loads(token, salt='email-confirm', max_age=120)
             if email_confirmation:
                 user = mongo.db.users.find_one({'email': email_confirmation})
                 if user:
@@ -59,7 +61,8 @@ class EmailConfirmation(Resource):
                     })
                     return {
                         "message": "Login now",
-                        "stage": "set_password"
+                        "stage": "Login",
+                        "user_identity": token
                     }
                 return {
                     "message": "User not found"
@@ -69,3 +72,8 @@ class EmailConfirmation(Resource):
         except BadTimeSignature:
             return {"message": "The verification token is invalid"}
 
+
+# After email confirmation user starts to login 
+class UserLogin(Resource):
+    def post(self):
+        pass
