@@ -1,4 +1,5 @@
 import os
+from flask_rest_service import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -7,8 +8,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token
 from bson.objectid import ObjectId
 import json
 from bson import json_util
-from db import mongo
-from mail_sender import mail
+
 
 _user_parser =  reqparse.RequestParser()
 
@@ -29,6 +29,15 @@ _user_parser.add_argument('user_type',
                     )
 
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
+
+
+class Test(Resource):
+     def get(self):
+        collections = []
+        for collection in mongo.db.list_collection_names():
+            collections.append(collection)
+        return json.loads(json.dumps(collections, default=json_util.default))
+
 
 # Registers the user with email and password
 class UserRegister(Resource):
