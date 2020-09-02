@@ -52,7 +52,7 @@ class UserRegister(Resource):
         id = mongo.db.users.insert({
             'email': data['email'],
             'password':_hased_password,
-            'user_type':data['user_type'],
+            'user_type':"UVU",
             'is_verified': False
         })                           # insert the data in the collection users 
         token = s.dumps(data['email'], salt='email-confirm')
@@ -98,12 +98,16 @@ class UserLogin(Resource):
         data = _user_parser.parse_args()
         user = mongo.db.users.find_one({'email': data['email']})
         if user and check_password_hash(user.get("password"), data['password']):
-            access_token = create_access_token(identity=str(user['_id']), fresh=True)
-            refresh_token = create_refresh_token(str(user['_id']))
+            if user.get("is_verified"):
+                access_token = create_access_token(identity=str(user['_id']), fresh=True)
+                refresh_token = create_refresh_token(str(user['_id']))
+                return {
+                    'access_token': access_token,
+                    'refresh_token': refresh_token
+                }, 200
             return {
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }, 200
+                'message': 'You need to verify your account!'
+            }
         return {
             'message': 'Invalid Credentials'
         }, 200
