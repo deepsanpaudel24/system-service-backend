@@ -64,7 +64,7 @@ class UserRegister(Resource):
             body="Thank you for signing up on Service-System. Please open the verification link to verify your email. {}".format(link) 
         )
         mail.send(msg)                                                                                             
-        return {"message": "User added successfully! "}, 409
+        return {"message": "User added successfully! "}, 201
 
 
 # Email confirmation of the user 

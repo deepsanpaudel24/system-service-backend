@@ -35,8 +35,9 @@ def add_claims_to_access_token(identity):
         'user_type': user["user_type"]
     }
 
-from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin
+from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile
 
 api.add_resource(UserRegister, '/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(UserLogin, '/user/login')
+api.add_resource(Profile, '/user/profile')
