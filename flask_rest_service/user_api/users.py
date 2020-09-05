@@ -48,7 +48,7 @@ class UserRegister(Resource):
         if user:
             return {
                 "message": "Email already exists in the system."
-            }
+            }, 409
         id = mongo.db.users.insert({
             'email': data['email'],
             'password':_hased_password,
@@ -82,14 +82,14 @@ class EmailConfirmation(Resource):
                     })
                     return {
                         "message": "User can login now",
-                    }
+                    }, 200
                 return {
                     "message": "User not found"
-                }
+                }, 404
         except SignatureExpired:
-            return {"message": "The verification token has expired now. Please register again."}
+            return {"message": "The verification token has expired now. Please register again."}, 401
         except BadTimeSignature:
-            return {"message": "The verification token is invalid"}
+            return {"message": "The verification token is invalid"}, 401
 
 
 # After email confirmation user starts to login 
@@ -107,7 +107,7 @@ class UserLogin(Resource):
                 }, 200
             return {
                 'message': 'You need to verify your account!'
-            }
+            }, 401
         return {
             'message': 'Invalid Credentials'
-        }, 200
+        }, 401
