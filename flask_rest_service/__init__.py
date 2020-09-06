@@ -4,8 +4,9 @@ from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
 from flask_pymongo import PyMongo
 from flask_mail import Mail
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies, jwt_required
 from bson.objectid import ObjectId
+import datetime
 
 MONGO_URL = os.environ.get('MONGO_URI')
 
@@ -38,6 +39,11 @@ def add_claims_to_access_token(identity):
         'user_type': user["user_type"]
     }
 
+@jwt.expired_token_loader
+def expired_token_callback():
+    return jsonify({
+        'message': 'The token has expired'
+    }), 401
 
 @app.route("/user/login", methods=["POST"])
 def login():
@@ -46,15 +52,21 @@ def login():
     user = mongo.db.users.find_one({'email': email})
     if user and check_password_hash(user.get("password"), password):
         if user.get("is_verified"):
-            access_token = create_access_token(identity=str(user['_id']), fresh=True)
+            expires = datetime.timedelta(days=1)
+            access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
             refresh_token = create_refresh_token(str(user['_id']))
             # Set the JWT cookies in the response
             resp = jsonify({'login': True})
             set_access_cookies(resp, access_token)
             set_refresh_cookies(resp, refresh_token)
             return resp, 200
-    return {"login": False}
+    return {"login": False}, 401
 
+
+# @app.route("/user/profile", methods=["GET"])
+# @jwt_required
+# def Userprofile():
+#     return {"message": "Hello from Profile! "}
 
 from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile
 
