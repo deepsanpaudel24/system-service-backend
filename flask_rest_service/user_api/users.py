@@ -27,6 +27,11 @@ _user_parser.add_argument('user_type',
                     required=False,
                     help="This field cannot be blank."
                     )
+_user_parser.add_argument('remember_me',
+                    type=str,
+                    required=False,
+                    help="This field cannot be blank."
+                    )
 
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
