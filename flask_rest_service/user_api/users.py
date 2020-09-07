@@ -58,7 +58,10 @@ class UserRegister(Resource):
             'email': data['email'],
             'password':_hased_password,
             'user_type':"UVU",
-            'is_verified': False
+            'is_verified': False,
+            'profile_basic_completion': False,
+            'profile_detailed_completion': False,
+            'profile_billing_completion': False
         })                           # insert the data in the collection users 
         token = s.dumps(data['email'], salt='email-confirm')
         link = url_for('emailconfirmation', token=token, _external=True)

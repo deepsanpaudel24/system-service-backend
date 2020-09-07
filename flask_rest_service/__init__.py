@@ -4,7 +4,7 @@ from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
 from flask_pymongo import PyMongo
 from flask_mail import Mail
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies, jwt_required
+from flask_jwt_extended import JWTManager, get_current_user ,create_access_token, create_refresh_token, set_access_cookies, set_refresh_cookies, jwt_required, get_jwt_identity
 from bson.objectid import ObjectId
 import datetime
 
@@ -56,21 +56,56 @@ def login():
             access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
             refresh_token = create_refresh_token(str(user['_id']))
             # Set the JWT cookies in the response
-            resp = jsonify({'login': True})
+            resp = jsonify({
+                'login': True,
+                'user_type': user.get("user_type"),
+                'profile_basic_completion':user.get("profile_basic_completion"),
+                'profile_detailed_completion':user.get("profile_detailed_completion"),
+                'profile_billing_completion':user.get("profile_billing_completion")
+            })
             set_access_cookies(resp, access_token)
             set_refresh_cookies(resp, refresh_token)
             return resp, 200
-    return {"login": False}, 401
+        return {
+                'message': 'You need to verify your account!'
+            }, 401
+    return {
+            'message': 'Invalid Credentials'
+        }, 401
+
+@app.route("/api/v1/user/update/user_type", methods=["PUT"])
+@jwt_required
+def UpdateUserType():
+    user_type = request.json.get('user_type', None)
+    if not user_type:
+        return {
+            'message': 'User type is empty'
+        }
+    current_user = get_jwt_identity()
+    user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+    if user:
+        mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
+                '$set': {
+                'user_type': user_type
+            }
+        })
+        expires = datetime.timedelta(days=1)
+        access_token = create_access_token(identity=current_user, fresh=True, expires_delta=expires)
+        resp = jsonify({
+                'isAuthenticated': True
+            })
+        set_access_cookies(resp, access_token)
+        return {"message": "User type updated successfully"}, 200
+    return {"message": "User does not exist."}, 404
 
 
-# @app.route("/user/profile", methods=["GET"])
-# @jwt_required
-# def Userprofile():
-#     return {"message": "Hello from Profile! "}
-
-from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile
+from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, UpdateUserProfileBilling
 
 api.add_resource(UserRegister, '/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(UserLogin, '/user/flask-restful/login')
 api.add_resource(Profile, '/user/profile')
+api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
+api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
+api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
+api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')
