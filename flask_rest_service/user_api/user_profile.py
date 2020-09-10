@@ -31,7 +31,7 @@ _basicProfile_parser.add_argument('phone_number',
                                 required=True,
                                 help="This field cannot be blank."
                             )
-_basicProfile_parser.add_argument('website',
+_basicProfile_parser.add_argument('registration_number',
                                 type=str,
                                 required=False,
                                 help="This field cannot be blank."
@@ -49,11 +49,7 @@ _detailedProfile_parser.add_argument('service_categories',
                                 required=True,
                                 help="This field cannot be blank."
                             )
-_detailedProfile_parser.add_argument('registration_number',
-                                type=str,
-                                required=True,
-                                help="This field cannot be blank."
-                            )
+
 
 _billingProfile_parser = reqparse.RequestParser()
 
@@ -105,7 +101,7 @@ class UpdateUserProfileBasic(Resource):
                     'name': basicData['name'],
                     'address': basicData['address'],
                     'phone_number': basicData['phone_number'],
-                    'website': basicData['website'],
+                    'registration_number': basicData['registration_number'],
                     'profile_basic_completion':True
                 }
             })
@@ -128,14 +124,16 @@ class UpdateUserProfileDetailed(Resource):
                     '$set': {
                     'service_type': detailedData['service_type'],
                     'service_categories': detailedData['service_categories'],
-                    'registration_number': detailedData['registration_number'],
                     'profile_detailed_completion': True
                 }
             })
             resp = jsonify({
                 'profile_detailed_completion': True
             })
-            return {"profile_detailed_completion": True}, 200
+            return {
+                "profile_detailed_completion": True,
+                "user_type": user.get("user_type")
+            }, 200
         return {
             "message": "User does not exist"
         }, 400

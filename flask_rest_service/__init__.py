@@ -45,7 +45,7 @@ def expired_token_callback():
         'message': 'The token has expired'
     }), 401
 
-@app.route("/user/login", methods=["POST"])
+@app.route("/api/v1/user/login", methods=["POST"])
 def login():
     email = request.json.get('email', None)
     password = request.json.get('password', None)
@@ -99,13 +99,16 @@ def UpdateUserType():
     return {"message": "User does not exist."}, 404
 
 
-from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, UpdateUserProfileBilling
+from flask_rest_service.user_api import Test, UserRegister, EmailConfirmation, UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, UpdateUserProfileBilling, CheckUserValidity, ForgotPassword, ResetPassword
 
-api.add_resource(UserRegister, '/user/register')
+api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
+api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
+api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserLogin, '/user/flask-restful/login')
 api.add_resource(Profile, '/user/profile')
 api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
+api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
 api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
 api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')
