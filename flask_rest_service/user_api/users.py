@@ -33,13 +33,18 @@ _user_parser.add_argument('remember_me',
                     help="This field cannot be blank."
                     )
 
-_forgot_password_parser = reqparse.RequestParser()
+_change_password_parser =  reqparse.RequestParser()
 
-_forgot_password_parser.add_argument('email',
-                                    type=str,
-                                    required=True,
-                                    help="This field cannot be blank"
-                                    )
+_change_password_parser.add_argument('current_password',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+_change_password_parser.add_argument('password',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
 
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
@@ -69,7 +74,8 @@ class UserRegister(Resource):
             'is_verified': False,
             'profile_basic_completion': False,
             'profile_detailed_completion': False,
-            'profile_billing_completion': False
+            'profile_billing_completion': False,
+            'logout': True
         })                           # insert the data in the collection users 
         token = s.dumps(data['email'], salt='email-confirm')
         link = url_for('emailconfirmation', token=token, _external=True)
@@ -77,7 +83,7 @@ class UserRegister(Resource):
             subject = "Email confirmation for Service-System",
             sender = os.environ['GMAIL_USERNAME'],
             recipients=[data['email']],
-            body="Thank you for signing up on Service-System. Please open the verification link to verify your email. {}".format(link) 
+            body="Thank you for signing up on Service-System. Please open the verification link to verify your email. Incase you have not setupyour password yourself then please use the temporary password systemserivce12 {}".format(link) 
         )
         mail.send(msg)                                                                                             
         return {"message": "User added successfully! "}, 201
@@ -87,7 +93,7 @@ class UserRegister(Resource):
 class EmailConfirmation(Resource):
     def get(self, token):
         try:
-            email_confirmation = s.loads(token, salt='email-confirm', max_age=120)
+            email_confirmation = s.loads(token, salt='email-confirm', max_age=600)
             if email_confirmation:
                 user = mongo.db.users.find_one({'email': email_confirmation})
                 if user:
@@ -96,6 +102,7 @@ class EmailConfirmation(Resource):
                             'is_verified': True
                         }
                     })
+                    
                     return {
                         "message": "User can login now",
                     }, 200
@@ -136,6 +143,7 @@ class CheckUserValidity(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user:
             return {
+                "logout": user.get("logout"),
                 "isAuthenticated": True,
                 "user_type": user.get("user_type"),
                 "profile_detailed_completion": user.get("profile_detailed_completion"),
@@ -145,50 +153,52 @@ class CheckUserValidity(Resource):
             "isAuthenticated": False,
         }, 401
 
-
-# Forgot password
-class ForgotPassword(Resource):
-    def post(self):
-        data = _forgot_password_parser.parse_args()
-        user = mongo.db.users.find_one({'email': data['email']})
+class ChangePassword(Resource):
+    @jwt_required
+    def put(self):
+        changePasswordData= _change_password_parser.parse_args()
+        _hased_password = generate_password_hash(changePasswordData['password'])      # Password hasing
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user:
-            token = s.dumps(data['email'], salt='forgot-password-confirm')
-            link = url_for('resetpassword', token=token, _external=True)
-            link_react = "http://localhost:3000/user/reset-password/{}".format(token)
-            msg = Message(
-                subject = "Password reset link for Service-System",
-                sender = os.environ['GMAIL_USERNAME'],
-                recipients=[data['email']],
-                body="Please open this link and fill up the new password to recover your account {}".format(link_react) 
-            )
-            mail.send(msg)                                                                                             
-            return {"message": "Password reset link sent! "}, 200
+            mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
+                    '$set': {
+                    'password': _hased_password
+                }
+            })
+            return {"message": "Password updated sucessfully. Please login again."}, 200
         return {
-            "message": "Email does not exist in the system"
-        }, 401
+            "message": "User does not exist"
+        }, 400
 
+class SerivceProvidersList(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SA":
+            serviceProviders = []
+            for spca in mongo.db.users.find({'user_type': 'SPCA'}):
+                serviceProviders.append(spca)
+            for sps in mongo.db.users.find({'user_type': 'SPS'}):
+                serviceProviders.append(sps)
+            return json.loads(json.dumps(serviceProviders, default=json_util.default))
+        return {
+            "message": "You are not authorized to view service providers"
+        }, 403
 
-# Reset password confirmation of the user 
-class ResetPassword(Resource):
-    def get(self, token):
-        try:
-            reset_password_email = s.loads(token, salt='forgot-password-confirm', max_age=120)
-            if reset_password_email:
-                user = mongo.db.users.find_one({'email': reset_password_email})
-                if user:
-                    mongo.db.users.update_one({'email': reset_password_email}, {
-                        '$set':{
-                            'password': str(user['_id'])
-                        }
-                    })
-                    return {
-                        "temporary password": str(user['_id']),
-                        "message": "Use this password to login now and please change your password",
-                    }, 200
-                return {
-                    "message": "User not found"
-                }, 404
-        except SignatureExpired:
-            return {"message": "The verification token has expired now. Please register again."}, 401
-        except BadTimeSignature:
-            return {"message": "The verification token is invalid"}, 401
+class ClientsList(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SA":
+            clients = []
+            for cca in mongo.db.users.find({'user_type': 'CCA'}):
+                clients.append(cca)
+            for cs in mongo.db.users.find({'user_type': 'CS'}):
+                clients.append(cs)
+            return json.loads(json.dumps(clients, default=json_util.default))
+        return {
+            "message": "You are not authorized to view clients"
+        }, 403
