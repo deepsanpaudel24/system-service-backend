@@ -1,5 +1,6 @@
 import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
 from flask_pymongo import PyMongo
@@ -17,6 +18,7 @@ import datetime
 MONGO_URL = os.environ.get('MONGO_URI')
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.secret_key = "service-system"
 app.config['MONGO_URI'] = MONGO_URL
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
@@ -203,6 +205,11 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList
                                         )
 
+from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForewardCaseRequest, 
+                                                    ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
+                                                    CaseProposals, PropsalDetails
+                                                )
+
 api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
@@ -218,3 +225,13 @@ api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing'
 api.add_resource(EmployeeRegister, '/api/v1/user/employee/register')
 api.add_resource(SerivceProvidersList, '/api/v1/service-providers/list')
 api.add_resource(ClientsList, '/api/v1/clients/list')
+api.add_resource(AddNewCaseRequest, '/api/v1/case-request')
+api.add_resource(Cases, '/api/v1/cases')
+api.add_resource(ClientCases, '/api/v1/client-cases')
+api.add_resource(ClientCasesDetails, '/api/v1/case/<id>')
+api.add_resource(ForewardCaseRequest, '/api/v1/forward/case-request/<id>')
+api.add_resource(ServiceProviderCases, '/api/v1/cases-sp')
+api.add_resource(ServiceProviderCasesDetails, '/api/v1/case-sp/<id>')
+api.add_resource(ReplyCaseRequest, '/api/v1/case-request/reply/<caseId>')
+api.add_resource(CaseProposals, '/api/v1/case/proposals/<caseId>')
+api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
