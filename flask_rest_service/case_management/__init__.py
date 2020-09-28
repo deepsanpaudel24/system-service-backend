@@ -1,3 +1,3 @@
 from flask_rest_service.case_management.newCase_request import AddNewCaseRequest
-from flask_rest_service.case_management.cases import Cases, ClientCases, ClientCasesDetails, ForewardCaseRequest, ServiceProviderCases, ServiceProviderCasesDetails
+from flask_rest_service.case_management.cases import Cases, ClientCases, ClientCasesDetails, ServiceProviderCasesActive, ForewardCaseRequest, ServiceProviderCases, ServiceProviderCasesDetails
 from flask_rest_service.case_management.case_request_reply import ReplyCaseRequest, CaseProposals, PropsalDetails

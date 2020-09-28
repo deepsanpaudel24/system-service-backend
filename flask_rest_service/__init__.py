@@ -207,7 +207,7 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForewardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
-                                                    CaseProposals, PropsalDetails
+                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive
                                                 )
 
 api.add_resource(UserRegister, '/api/v1/user/register')
@@ -231,6 +231,7 @@ api.add_resource(ClientCases, '/api/v1/client-cases')
 api.add_resource(ClientCasesDetails, '/api/v1/case/<id>')
 api.add_resource(ForewardCaseRequest, '/api/v1/forward/case-request/<id>')
 api.add_resource(ServiceProviderCases, '/api/v1/cases-sp')
+api.add_resource(ServiceProviderCasesActive, '/api/v1/cases-sp-active')
 api.add_resource(ServiceProviderCasesDetails, '/api/v1/case-sp/<id>')
 api.add_resource(ReplyCaseRequest, '/api/v1/case-request/reply/<caseId>')
 api.add_resource(CaseProposals, '/api/v1/case/proposals/<caseId>')

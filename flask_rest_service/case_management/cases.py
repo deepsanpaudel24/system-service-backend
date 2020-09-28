@@ -42,12 +42,23 @@ class ServiceProviderCases(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS":
             cases = []
-            for case in mongo.db.cases.find({'forward': True}):
+            for case in mongo.db.cases.find({"$and": [{"forward": True}, {"status": "Requested"}]}):
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {
             "message": "You are not authorized to view cases"
         }, 403
+
+class ServiceProviderCasesActive(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        cases = []
+        for case in mongo.db.cases.find({"$and": [{"status": "On-progress"}, {"serviceProvider": ObjectId(current_user)}]}):
+            cases.append(case)
+        return json.loads(json.dumps(cases, default=json_util.default))
+        
 
 # this case details can be viewed either by the SA or the respective client 
 # or if the SP and its employee are assigned 
