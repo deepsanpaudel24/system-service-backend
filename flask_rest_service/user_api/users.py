@@ -8,6 +8,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
+from datetime import datetime
 
 
 _user_parser =  reqparse.RequestParser()
@@ -75,7 +76,8 @@ class UserRegister(Resource):
             'profile_basic_completion': False,
             'profile_detailed_completion': False,
             'profile_billing_completion': False,
-            'logout': True
+            'logout': True,
+            'createdDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection users 
         token = s.dumps(data['email'], salt='email-confirm')
         link = url_for('emailconfirmation', token=token, _external=True)
@@ -141,13 +143,23 @@ class CheckUserValidity(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get("user_type") == "SPCAe":
+            return {
+                "logout": user.get("logout"),
+                "isAuthenticated": True,
+                "user_type": user.get("user_type"),
+                "profile_detailed_completion": user.get("profile_detailed_completion"),
+                "profile_basic_completion": user.get("profile_basic_completion"),
+                "serviceManagement": user.get("serviceManagement"),
+                "clientManagement": user.get("clientManagement")
+            }, 200
         if user:
             return {
                 "logout": user.get("logout"),
                 "isAuthenticated": True,
                 "user_type": user.get("user_type"),
                 "profile_detailed_completion": user.get("profile_detailed_completion"),
-                "profile_basic_completion": user.get("profile_basic_completion")
+                "profile_basic_completion": user.get("profile_basic_completion"),
             }, 200
         return {
             "isAuthenticated": False,

@@ -143,7 +143,6 @@ def ChangePassword():
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
 @app.route("/api/v1/user/employee/setup-password/<token>", methods=["PUT"])
-@jwt_required
 def EmployeeSetupPassword(token):
     try:
         data = request.json.get('password', None)
@@ -158,10 +157,6 @@ def EmployeeSetupPassword(token):
                             'is_verified': True
                         }
                     })
-                jti = get_raw_jwt()['jti']
-                BLACKLIST.add(jti)
-                resp = jsonify({'logout': True})
-                unset_jwt_cookies(resp)
                 return {
                         "message": "Password Updated successfully",
                     }, 200
@@ -202,13 +197,16 @@ def UpdateUserType():
 from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmation, 
                                             UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, 
                                             UpdateUserProfileBilling, CheckUserValidity, ForgotPassword, ResetPassword,
-                                            EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList
+                                            EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList, EmployeeDetails,
+                                            ClientRegister, UserClientList
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForewardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
                                                     CaseProposals, PropsalDetails, ServiceProviderCasesActive
                                                 )
+
+from flask_rest_service.service_management import Service, ServicesList, ServiceAction
 
 api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
@@ -223,6 +221,7 @@ api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
 api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
 api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')
 api.add_resource(EmployeeRegister, '/api/v1/user/employee/register')
+api.add_resource(EmployeeDetails, '/api/v1/employee/<id>')
 api.add_resource(SerivceProvidersList, '/api/v1/service-providers/list')
 api.add_resource(ClientsList, '/api/v1/clients/list')
 api.add_resource(AddNewCaseRequest, '/api/v1/case-request')
@@ -236,3 +235,10 @@ api.add_resource(ServiceProviderCasesDetails, '/api/v1/case-sp/<id>')
 api.add_resource(ReplyCaseRequest, '/api/v1/case-request/reply/<caseId>')
 api.add_resource(CaseProposals, '/api/v1/case/proposals/<caseId>')
 api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
+
+api.add_resource(Service, '/api/v1/service')
+api.add_resource(ServiceAction, '/api/v1/service/<id>')
+api.add_resource(ServicesList, '/api/v1/services')
+
+api.add_resource(ClientRegister, '/api/v1/client/register')
+api.add_resource(UserClientList, '/api/v1/clients')

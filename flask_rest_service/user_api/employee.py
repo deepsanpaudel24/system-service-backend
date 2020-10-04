@@ -9,6 +9,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
+from datetime import datetime
 
 
 _employee_parser =  reqparse.RequestParser()
@@ -26,6 +27,17 @@ _employee_setup_password_parser.add_argument('password',
                                             required=True,
                                             help="This field cannot be blank"
                                             )
+
+_employeeRoles_parser = reqparse.RequestParser()
+
+_employeeRoles_parser.add_argument('serviceManagement',
+                                type=bool,
+                                required=False
+                            )
+_employeeRoles_parser.add_argument('clientManagement',
+                                type=bool,
+                                required=False
+                            )
 
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
@@ -51,7 +63,8 @@ class EmployeeRegister(Resource):
                     'profile_basic_completion': False,
                     'profile_detailed_completion': True,
                     'profile_billing_completion': True,
-                    'logout': True
+                    'logout': True,
+                    'createdDate': datetime.today().strftime('%Y-%m-%d')
                 })                           # insert the data in the collection users 
                 token = s.dumps(data['email'], salt='employee-email-confirm')
                 link_react = "http://localhost:3000/user/employee/password-setup/{}".format(token)
@@ -104,3 +117,48 @@ class EmployeeSetupPassword(Resource):
             return {"message": "The verification token has expired now. Please reset again."}, 401
         except BadTimeSignature:
             return {"message": "The verification token is invalid"}, 401
+
+# class to provide the employee details 
+class EmployeeDetails(Resource):
+    @jwt_required
+    def get(self, id):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SA" or user.get('user_type') == "SPCA" or user.get('user_type') == "CCA":
+            employee_details = mongo.db.users.find_one({'_id': ObjectId(id)})
+            return json.loads(json.dumps(employee_details, default=json_util.default))
+        return {"message" : "You are not authorized to view this page"}, 403
+
+    @jwt_required
+    def delete(self, id):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SA" or user.get('user_type') == "SPCA" or user.get('user_type') == "CCA":
+            employee_details = mongo.db.users.remove({'_id': ObjectId(id)})
+            return {"message": "User has been removed permanently"}, 200
+    
+    @jwt_required
+    def put(self, id):
+        rolesData= _employeeRoles_parser.parse_args()
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCA" or user.get('user_type') == "SA":
+            current_employee = mongo.db.users.find_one({'_id': ObjectId(id)})
+            if current_employee:
+                mongo.db.users.update_one({'_id': ObjectId(id)}, {
+                        '$set': {
+                        'serviceManagement': rolesData['serviceManagement'],
+                        'clientManagement': rolesData['clientManagement']
+                    }
+                })
+                return {
+                    "message": "Roles update successsfull"
+                }, 200
+            return {
+                "message": "Employee does not exist"
+            }, 404
+        return {
+            "message": "You are not authorized to assign roles to employee"
+        }, 403
+
+        
