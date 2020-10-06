@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -18,10 +18,9 @@ import datetime
 MONGO_URL = os.environ.get('MONGO_URI')
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+cors = CORS(app)
 app.secret_key = "service-system"
 app.config['MONGO_URI'] = MONGO_URL
-app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
@@ -66,39 +65,41 @@ def revoked_token_callback():
         'error': 'token_revoked'
     }), 401
 
-@app.route("/api/v1/user/login", methods=["POST"])
-def login():
-    email = request.json.get('email', None)
-    password = request.json.get('password', None)
-    user = mongo.db.users.find_one({'email': email})
-    if user and check_password_hash(user.get("password"), password):
-        if user.get("is_verified"):
-            expires = datetime.timedelta(days=1)
-            access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
-            refresh_token = create_refresh_token(str(user['_id']))
-            # Set the JWT cookies in the response
-            resp = jsonify({
-                'login': True,
-                'user_type': user.get("user_type"),
-                'profile_basic_completion':user.get("profile_basic_completion"),
-                'profile_detailed_completion':user.get("profile_detailed_completion"),
-                'profile_billing_completion':user.get("profile_billing_completion")
-            })
-            set_access_cookies(resp, access_token)
-            set_refresh_cookies(resp, refresh_token)
-            if user:
-                mongo.db.users.update_one({'email': email}, {
-                        '$set': {
-                        'logout': False 
-                    }
-                })
-            return resp, 200
-        return {
-                'message': 'You need to verify your account!'
-            }, 401
-    return {
-            'message': 'Invalid Credentials'
-        }, 401
+# @app.route("/api/v1/user/login", methods=["POST"])
+# def login():
+#     email = request.json.get('email', None)
+#     password = request.json.get('password', None)
+#     user = mongo.db.users.find_one({'email': email})
+#     if user and check_password_hash(user.get("password"), password):
+#         if user.get("is_verified"):
+#             expires = datetime.timedelta(days=1)
+#             access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
+#             refresh_token = create_refresh_token(str(user['_id']))
+#             # Set the JWT cookies in the response
+#             resp = jsonify({
+#                 'login': True,
+#                 'user_type': user.get("user_type"),
+#                 'profile_basic_completion':user.get("profile_basic_completion"),
+#                 'profile_detailed_completion':user.get("profile_detailed_completion"),
+#                 'profile_billing_completion':user.get("profile_billing_completion")
+#             })
+#             resp.set_cookie("name", "test")
+#             set_access_cookies(resp, access_token)
+#             set_refresh_cookies(resp, refresh_token)
+#             resp.headers['Access-Control-Allow-Credentials'] = True
+#             if user:
+#                 mongo.db.users.update_one({'email': email}, {
+#                         '$set': {
+#                         'logout': False 
+#                     }
+#                 })
+#             return resp, 200
+#         return {
+#                 'message': 'You need to verify your account!'
+#             }, 401
+#     return {
+#             'message': 'Invalid Credentials'
+#         }, 401
 
 @app.route("/api/v1/user/logout", methods=["POST"])
 @jwt_required
@@ -208,15 +209,15 @@ from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, Cl
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction
 
+api.add_resource(UserLogin, '/api/v1/user/login')
+api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
 api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserEmployeeList, '/api/v1/user/employee/list')
-api.add_resource(UserLogin, '/user/flask-restful/login')
 api.add_resource(Profile, '/user/profile')
 api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
-api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
 api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
 api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')

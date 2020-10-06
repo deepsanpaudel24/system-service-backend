@@ -1,4 +1,6 @@
 import os
+from flask import jsonify
+from flask_cors import CORS, cross_origin
 from flask_rest_service import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
@@ -9,7 +11,20 @@ from bson.objectid import ObjectId
 import json
 from bson import json_util
 from datetime import datetime
+import datetime
 
+_login_parser =  reqparse.RequestParser()
+
+_login_parser.add_argument('email',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+_login_parser.add_argument('password',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
 
 _user_parser =  reqparse.RequestParser()
 
@@ -56,6 +71,34 @@ class Test(Resource):
         for collection in mongo.db.list_collection_names():
             collections.append(collection)
         return json.loads(json.dumps(collections, default=json_util.default))
+
+
+class UserLogin(Resource):
+    def post(self):
+        data = _login_parser.parse_args()
+        user = mongo.db.users.find_one({'email': data['email']})
+        if user and check_password_hash(user.get("password"), data['password']):
+            if user.get("is_verified"):
+                expires = datetime.timedelta(days=1)
+                access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
+                refresh_token = create_refresh_token(str(user['_id']))
+                resp ={
+                    'login': True,
+                    'user_type': user.get("user_type"),
+                    'profile_basic_completion':user.get("profile_basic_completion"),
+                    'profile_detailed_completion':user.get("profile_detailed_completion"),
+                    'profile_billing_completion':user.get("profile_billing_completion"),
+                    'access_token': access_token,
+                    'refresh_token': refresh_token
+                }
+                return resp, 200
+            return {
+                "message": "You need to verify your account"
+            }, 403
+        return {
+            "message": "Invalid credentials"
+        }, 403
+
 
 
 # Registers the user with email and password
@@ -116,26 +159,6 @@ class EmailConfirmation(Resource):
         except BadTimeSignature:
             return {"message": "The verification token is invalid"}, 401
 
-
-# After email confirmation user starts to login 
-class UserLogin(Resource):
-    def post(self):
-        data = _user_parser.parse_args()
-        user = mongo.db.users.find_one({'email': data['email']})
-        if user and check_password_hash(user.get("password"), data['password']):
-            if user.get("is_verified"):
-                access_token = create_access_token(identity=str(user['_id']), fresh=True)
-                refresh_token = create_refresh_token(str(user['_id']))
-                return {
-                    'access_token': access_token,
-                    'refresh_token': refresh_token
-                }, 200
-            return {
-                'message': 'You need to verify your account!'
-            }, 401
-        return {
-            'message': 'Invalid Credentials'
-        }, 401
 
 # Check if user_type and user is authenticated and return user type
 class CheckUserValidity(Resource):
