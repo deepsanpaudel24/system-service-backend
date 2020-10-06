@@ -65,42 +65,6 @@ def revoked_token_callback():
         'error': 'token_revoked'
     }), 401
 
-# @app.route("/api/v1/user/login", methods=["POST"])
-# def login():
-#     email = request.json.get('email', None)
-#     password = request.json.get('password', None)
-#     user = mongo.db.users.find_one({'email': email})
-#     if user and check_password_hash(user.get("password"), password):
-#         if user.get("is_verified"):
-#             expires = datetime.timedelta(days=1)
-#             access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
-#             refresh_token = create_refresh_token(str(user['_id']))
-#             # Set the JWT cookies in the response
-#             resp = jsonify({
-#                 'login': True,
-#                 'user_type': user.get("user_type"),
-#                 'profile_basic_completion':user.get("profile_basic_completion"),
-#                 'profile_detailed_completion':user.get("profile_detailed_completion"),
-#                 'profile_billing_completion':user.get("profile_billing_completion")
-#             })
-#             resp.set_cookie("name", "test")
-#             set_access_cookies(resp, access_token)
-#             set_refresh_cookies(resp, refresh_token)
-#             resp.headers['Access-Control-Allow-Credentials'] = True
-#             if user:
-#                 mongo.db.users.update_one({'email': email}, {
-#                         '$set': {
-#                         'logout': False 
-#                     }
-#                 })
-#             return resp, 200
-#         return {
-#                 'message': 'You need to verify your account!'
-#             }, 401
-#     return {
-#             'message': 'Invalid Credentials'
-#         }, 401
-
 @app.route("/api/v1/user/logout", methods=["POST"])
 @jwt_required
 def LogoutUser():
@@ -115,7 +79,6 @@ def LogoutUser():
     jti = get_raw_jwt()['jti']
     BLACKLIST.add(jti)
     resp = jsonify({'logout': True})
-    unset_jwt_cookies(resp)
     return resp, 200
 
 @app.route("/api/v1/user/change-password", methods=["PUT"])
@@ -136,7 +99,6 @@ def ChangePassword():
             jti = get_raw_jwt()['jti']
             BLACKLIST.add(jti)
             resp = jsonify({'logout': True})
-            unset_jwt_cookies(resp)
             return {"message": "Password updated sucessfully. Please login again."}, 200
         return {"message": "Current password does not match"}, 401
     return {"message": "User does not exist"}, 404
