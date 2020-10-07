@@ -11,7 +11,6 @@ from bson.objectid import ObjectId
 import json
 from bson import json_util
 from datetime import datetime
-import datetime
 
 _login_parser =  reqparse.RequestParser()
 
