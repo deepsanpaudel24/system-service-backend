@@ -72,34 +72,6 @@ class Test(Resource):
         return json.loads(json.dumps(collections, default=json_util.default))
 
 
-class UserLogin(Resource):
-    def post(self):
-        data = _login_parser.parse_args()
-        user = mongo.db.users.find_one({'email': data['email']})
-        if user and check_password_hash(user.get("password"), data['password']):
-            if user.get("is_verified"):
-                expires = datetime.timedelta(days=1)
-                access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
-                refresh_token = create_refresh_token(str(user['_id']))
-                resp ={
-                    'login': True,
-                    'user_type': user.get("user_type"),
-                    'profile_basic_completion':user.get("profile_basic_completion"),
-                    'profile_detailed_completion':user.get("profile_detailed_completion"),
-                    'profile_billing_completion':user.get("profile_billing_completion"),
-                    'access_token': access_token,
-                    'refresh_token': refresh_token
-                }
-                return resp, 200
-            return {
-                "message": "You need to verify your account"
-            }, 403
-        return {
-            "message": "Invalid credentials"
-        }, 403
-
-
-
 # Registers the user with email and password
 class UserRegister(Resource):
     def post(self):
