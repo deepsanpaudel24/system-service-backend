@@ -149,11 +149,13 @@ def UpdateUserType():
         })
         expires = datetime.timedelta(days=1)
         access_token = create_access_token(identity=current_user, fresh=True, expires_delta=expires)
-        resp = jsonify({
-                'isAuthenticated': True
-            })
-        set_access_cookies(resp, access_token)
-        return {"message": "User type updated successfully"}, 200
+        refresh_token = create_refresh_token(str(user['_id']))
+        resp ={
+                'isAuthenticated': True,
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }
+        return resp, 200
     return {"message": "User does not exist."}, 404
 
 
