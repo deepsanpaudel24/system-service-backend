@@ -1,1 +1,1 @@
-from flask_rest_service.service_management.service import Service, ServicesList, ServiceAction
+from flask_rest_service.service_management.service import Service, ServicesList, ServiceAction, SaViewServicesList

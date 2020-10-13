@@ -10,24 +10,29 @@ from datetime import datetime
 _newCaseRequest_parser =  reqparse.RequestParser()
 
 _newCaseRequest_parser.add_argument('title',
-                    type=str,
-                    required=True,
-                    help="This field cannot be blank."
-                    )
-_newCaseRequest_parser.add_argument('type',
-                    type=str,
-                    required=True,
-                    help="This field cannot be blank."
+                        type=str,
+                        required=True,
+                        help="This field cannot be blank."
                     )
 _newCaseRequest_parser.add_argument('desc',
-                    type=str,
-                    required=False,
-                    help="This field cannot be blank."
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
                     )
 _newCaseRequest_parser.add_argument('budget',
-                    type=int,
-                    required=False,
-                    help="This field cannot be blank."
+                        type=int,
+                        required=False,
+                        help="This field cannot be blank."
+                    )
+_newCaseRequest_parser.add_argument('deadline',
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
+                    )
+_newCaseRequest_parser.add_argument('caseTags',
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
                     )
 
 class AddNewCaseRequest(Resource):
@@ -36,14 +41,25 @@ class AddNewCaseRequest(Resource):
         current_user = get_jwt_identity()
         data = _newCaseRequest_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        caseTags = data['caseTags'].split(',')
         id = mongo.db.cases.insert({
             'title': data['title'],
-            'type': data['type'],
             'desc': data['desc'],
             'budgetClient': data['budget'],
+            'deadline': data['deadline'],
+            'caseTags': caseTags,
             'status': "Requested",
             'client': ObjectId(current_user),
             'clientName': user.get('name'),
             'requestedDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection cases                                                                                            
+        })                           # insert the data in the collection cases           
+        # insert new notification details in notification collection
+        # needs to palce the superadmin id in env varaibles
+        id = mongo.db.notifications.insert({
+            'title': "New service request from " + user.get('name'),
+            'sender': ObjectId(current_user),
+            'receiver': ObjectId("5f7196d7be625540246db3d7"),
+            'status': 'unread',
+            'createdDate': datetime.today().strftime('%Y-%m-%d')
+        })                                                                                 
         return {"message": "Case requested successfully! "}, 201

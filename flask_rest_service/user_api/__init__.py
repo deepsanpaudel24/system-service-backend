@@ -5,3 +5,4 @@ from flask_rest_service.user_api.forgot_password import  ForgotPassword, ResetPa
 from flask_rest_service.user_api.user_profile import Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, UpdateUserProfileBilling
 from flask_rest_service.user_api.employee import EmployeeRegister, UserEmployeeList, EmployeeSetupPassword, EmployeeDetails
 from flask_rest_service.user_api.clients import ClientRegister, UserClientList
+from flask_rest_service.user_api.people import PeopleRegister, PeopleDetails

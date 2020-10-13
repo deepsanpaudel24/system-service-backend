@@ -120,10 +120,11 @@ class UpdateUserProfileDetailed(Resource):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user:
+            serviceTags = detailedData['service_categories'].split(',')
             mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
                     '$set': {
                     'service_type': detailedData['service_type'],
-                    'service_categories': detailedData['service_categories'],
+                    'service_categories': serviceTags,
                     'profile_detailed_completion': True
                 }
             })

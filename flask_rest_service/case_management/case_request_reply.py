@@ -16,19 +16,30 @@ _replyCaseRequest_parser.add_argument('title',
                     )
 _replyCaseRequest_parser.add_argument('desc',
                     type=str,
-                    required=False,
+                    required=True,
                     help="This field cannot be blank."
                     )
-_replyCaseRequest_parser.add_argument('budget',
-                    type=int,
-                    required=False,
-                    help="This field cannot be blank."
-                    )
-_replyCaseRequest_parser.add_argument('caseId',
+_replyCaseRequest_parser.add_argument('rateType',
                     type=str,
-                    required=False,
+                    required=True,
                     help="This field cannot be blank."
                     )
+_replyCaseRequest_parser.add_argument('rate',
+                    type=float,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+_replyCaseRequest_parser.add_argument('averageTimeTaken',
+                    type=int,
+                    required=True,
+                    help="This field cannot be blank. Please enter your average time taken in hours."
+                    )
+_replyCaseRequest_parser.add_argument('spDeadline',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+
 
 _acceptProposal_parser =  reqparse.RequestParser()
 
@@ -47,13 +58,20 @@ class ReplyCaseRequest(Resource):
         id = mongo.db.proposals.insert({
             'title': data['title'],
             'desc': data['desc'],
-            'fee': data['budget'],
-            'status': "Replied",
+            'rateType': data['rateType'],
+            'rate': data['rate'],
+            'averageTimeTaken': data['averageTimeTaken'],
+            'spDeadline': data['spDeadline'],
             'caseId': ObjectId(caseId),
             'serviceProvider': ObjectId(current_user),
             'serviceProvidername': user.get('name'),
-            'requestedDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection proposals                                                                                            
+            'sentDate': datetime.today().strftime('%Y-%m-%d')
+        })                           # insert the data in the collection proposals   
+        mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
+                    '$set': {
+                    'status': "Proposal-Forwarded"
+                }
+            })                                                                                         
         return {"message": "Proposal sent successfully"}, 201
     
     @jwt_required
@@ -69,7 +87,7 @@ class CaseProposals(Resource):
     def get(self, caseId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CS" or user.get('user_type') == "SA":
             case = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
             if case:
                 proposals = []
@@ -116,7 +134,8 @@ class PropsalDetails(Resource):
                         'serviceProvider': ObjectId(proposal.get('serviceProvider')),
                         'serviceProvidername': proposal.get('serviceProvidername'),
                         'status': "On-progress",
-                        'fee': proposal.get('fee')
+                        'rateType': proposal.get('rateType'),
+                        'rate': proposal.get('rate')
                     }
                 })
             return {"message": accepted_value}

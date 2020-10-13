@@ -38,6 +38,10 @@ _employeeRoles_parser.add_argument('clientManagement',
                                 type=bool,
                                 required=False
                             )
+_employeeRoles_parser.add_argument('notification_title',
+                                type=str,
+                                required=False
+                            )
 
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
@@ -151,6 +155,14 @@ class EmployeeDetails(Resource):
                         'clientManagement': rolesData['clientManagement']
                     }
                 })
+                # insert new notification details in notification collection
+                id = mongo.db.notifications.insert({
+                    'title': rolesData['notification_title'],
+                    'sender': ObjectId(current_user),
+                    'receiver': ObjectId(id),
+                    'status': 'unread',
+                    'createdDate': datetime.today().strftime('%Y-%m-%d')
+                })      
                 return {
                     "message": "Roles update successsfull"
                 }, 200

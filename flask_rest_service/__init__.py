@@ -18,7 +18,7 @@ import datetime
 MONGO_URL = os.environ.get('MONGO_URI')
 
 app = Flask(__name__)
-cors = CORS(app)
+cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.secret_key = "service-system"
 app.config['MONGO_URI'] = MONGO_URL
 app.config['JWT_BLACKLIST_ENABLED'] = True
@@ -163,15 +163,19 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, 
                                             UpdateUserProfileBilling, CheckUserValidity, ForgotPassword, ResetPassword,
                                             EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList, EmployeeDetails,
-                                            ClientRegister, UserClientList
+                                            ClientRegister, UserClientList, PeopleRegister, PeopleDetails
                                         )
 
-from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForewardCaseRequest, 
+from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
-                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive
+                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive,
                                                 )
 
-from flask_rest_service.service_management import Service, ServicesList, ServiceAction
+from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
+
+from flask_rest_service.notifications import Notifcations
+
+from flask_rest_service.timers import AddTimer, TotalSpentTime, AddNonCaseTimer, UpdateNonCaseTimer
 
 api.add_resource(UserLogin, '/api/v1/user/login')
 api.add_resource(CheckUserValidity, '/api/v1/user/validity')
@@ -189,11 +193,12 @@ api.add_resource(EmployeeRegister, '/api/v1/user/employee/register')
 api.add_resource(EmployeeDetails, '/api/v1/employee/<id>')
 api.add_resource(SerivceProvidersList, '/api/v1/service-providers/list')
 api.add_resource(ClientsList, '/api/v1/clients/list')
+
 api.add_resource(AddNewCaseRequest, '/api/v1/case-request')
 api.add_resource(Cases, '/api/v1/cases')
 api.add_resource(ClientCases, '/api/v1/client-cases')
 api.add_resource(ClientCasesDetails, '/api/v1/case/<id>')
-api.add_resource(ForewardCaseRequest, '/api/v1/forward/case-request/<id>')
+api.add_resource(ForwardCaseRequest, '/api/v1/forward/case-request/<id>')
 api.add_resource(ServiceProviderCases, '/api/v1/cases-sp')
 api.add_resource(ServiceProviderCasesActive, '/api/v1/cases-sp-active')
 api.add_resource(ServiceProviderCasesDetails, '/api/v1/case-sp/<id>')
@@ -204,6 +209,18 @@ api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
 api.add_resource(ServicesList, '/api/v1/services')
+api.add_resource(SaViewServicesList, '/api/v1/services/<ownerid>')
 
 api.add_resource(ClientRegister, '/api/v1/client/register')
 api.add_resource(UserClientList, '/api/v1/clients')
+
+# Api naming considered for the sencond time from here
+api.add_resource(PeopleRegister, '/api/v1/peoples')
+api.add_resource(PeopleDetails, '/api/v1/peoples/<id>')
+
+api.add_resource(Notifcations, '/api/v1/notifications')
+
+api.add_resource(AddTimer, '/api/v1/timers')
+api.add_resource(TotalSpentTime, '/api/v1/total-time/<caseId>')
+api.add_resource(AddNonCaseTimer, '/api/v1/non-case-timer')
+api.add_resource(UpdateNonCaseTimer, '/api/v1/non-case-timer/<timerId>')

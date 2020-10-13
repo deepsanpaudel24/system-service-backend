@@ -44,6 +44,20 @@ class ServicesList(Resource):
             "message": "You are not authorized to view cases"
         }, 403 
 
+class SaViewServicesList(Resource):
+    @jwt_required
+    def get(self, ownerid):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SA" or user.get('user_type') == "SAe":
+            services = []
+            for service in mongo.db.services.find({'owner': ObjectId(ownerid)}):
+                services.append(service)
+            return json.loads(json.dumps(services, default=json_util.default))
+        return {
+            "message": "You are not authorized to view cases"
+        }, 403 
+
 class Service(Resource):
     @jwt_required
     def post(self):
