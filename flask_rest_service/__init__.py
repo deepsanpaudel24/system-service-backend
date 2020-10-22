@@ -15,8 +15,7 @@ from bson.objectid import ObjectId
 from flask_rest_service.blacklist import BLACKLIST
 import datetime
 
-MONGO_URL = os.environ.get('MONGO_URI')
-
+MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
 cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.secret_key = "service-system"
@@ -33,8 +32,8 @@ mail_settings = {
     "MAIL_PORT": 465,
     "MAIL_USE_TSL": False,
     "MAIL_USE_SSL": True,
-    "MAIL_USERNAME": os.environ['GMAIL_USERNAME'],
-    "MAIL_PASSWORD": os.environ['GMAIL_PASSWORD']
+    "MAIL_USERNAME": "paudelsandeep24@gmail.com",
+    "MAIL_PASSWORD": "sdjfksld"
 }
 app.config.update(mail_settings)
 mail = Mail(app)
