@@ -90,7 +90,7 @@ class SendEmployeeEmailInvitation(Resource):
         link_react = "http://localhost:3000/user/employee/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = "eriksentury470@gmail.com",
+            sender = "rukshan.shady@gmail.com",
             recipients=[data['email']],
             body="You have been invited on Service-System. Please open the link to verify setup your account. {}".format(link_react) 
         )

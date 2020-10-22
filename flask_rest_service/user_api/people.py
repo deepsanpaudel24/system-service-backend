@@ -76,7 +76,7 @@ class PeopleInvitationEmail(Resource):
         link_react = "http://localhost:3000/user/people/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender ="eriksentury470@gmail.com",
+            sender ="rukshan.shady@gmail.com",
             recipients=[data['email']],
             body="You have been invited on Service-System by the system admin. Please open the link to verify and setup your account. {}".format(link_react) 
         )
