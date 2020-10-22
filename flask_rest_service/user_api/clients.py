@@ -76,7 +76,7 @@ class ClientEmailConfrimation(Resource):
         link_react = "http://localhost:3000/user/client/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = os.environ['GMAIL_USERNAME'],
+            sender = "eriksentury470@gmail.com",
             recipients=[data['email']],
             body="You have been invited on Service-System. Please open the link to verify and setup your account. {}".format(link_react) 
         )
