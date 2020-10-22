@@ -2,6 +2,7 @@ import os
 from flask import jsonify
 from flask_cors import CORS, cross_origin
 from flask_rest_service import app, api, mongo, mail
+# from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -37,6 +38,11 @@ _user_parser.add_argument('password',
                     required=True,
                     help="This field cannot be blank."
                     )
+_user_parser.add_argument('confirm_password',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
 _user_parser.add_argument('user_type',
                     type=str,
                     required=False,
@@ -45,6 +51,14 @@ _user_parser.add_argument('user_type',
 _user_parser.add_argument('remember_me',
                     type=str,
                     required=False,
+                    help="This field cannot be blank."
+                    )
+
+_emailConfirm_parser =  reqparse.RequestParser()
+
+_emailConfirm_parser.add_argument('email',
+                    type=str,
+                    required=True,
                     help="This field cannot be blank."
                     )
 
@@ -76,23 +90,30 @@ class Test(Resource):
 class UserRegister(Resource):
     def post(self):
         data = _user_parser.parse_args()
-        _hased_password = generate_password_hash(data['password'])      # Password hasing
-        user = mongo.db.users.find_one({'email': data['email']})
-        if user:
-            return {
-                "message": "Email already exists in the system."
-            }, 409
-        id = mongo.db.users.insert({
-            'email': data['email'],
-            'password':_hased_password,
-            'user_type':"UVU",
-            'is_verified': False,
-            'profile_basic_completion': False,
-            'profile_detailed_completion': False,
-            'profile_billing_completion': False,
-            'logout': True,
-            'createdDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection users 
+        if data['password'] == data['confirm_password']:
+            _hased_password = generate_password_hash(data['password'])      # Password hasing
+            user = mongo.db.users.find_one({'email': data['email']})
+            if user:
+                return {
+                    "message": "Email already exists in the system."
+                }, 409
+            id = mongo.db.users.insert({
+                'email': data['email'],
+                'password':_hased_password,
+                'user_type':"UVU",
+                'is_verified': False,
+                'profile_basic_completion': False,
+                'profile_detailed_completion': False,
+                'profile_billing_completion': False,
+                'logout': True,
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection users                                                                                              
+            return {"message": "User added successfully! "}, 201
+        return { "message": "Confirm password does not match with the password"}, 403
+
+class SendEmailConfirmation(Resource):
+    def post(self):
+        data = _emailConfirm_parser.parse_args()
         token = s.dumps(data['email'], salt='email-confirm')
         link = url_for('emailconfirmation', token=token, _external=True)
         msg = Message(
@@ -102,7 +123,7 @@ class UserRegister(Resource):
             body="Thank you for signing up on Service-System. Please open the verification link to verify your email. Incase you have not setupyour password yourself then please use the temporary password systemserivce12 {}".format(link) 
         )
         mail.send(msg)                                                                                             
-        return {"message": "User added successfully! "}, 201
+        return {"message": "Email sent successfully"}, 201
 
 
 # Email confirmation of the user 

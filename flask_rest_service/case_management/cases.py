@@ -1,4 +1,5 @@
 from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson.objectid import ObjectId
@@ -17,12 +18,11 @@ _forwardTo_parser.add_argument('service_providers',
 class Cases(Resource):
     @jwt_required
     def get(self):
-        print('hahahahhahha')
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SA":
             cases = []
-            for case in mongo.db.cases.find():
+            for case in mongo.db.cases.find().sort("_id", -1):
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {
@@ -37,7 +37,7 @@ class ClientCases(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
             cases = []
-            for case in mongo.db.cases.find({'client': ObjectId(current_user)}):
+            for case in mongo.db.cases.find({'client': ObjectId(current_user)}).sort("_id", -1):
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {
@@ -51,8 +51,10 @@ class ServiceProviderCases(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
             cases = []
-            
             for case in mongo.db.cases.find({"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } }).sort("_id", -1):
+                # proposal = mongo.db.proposals.find_one({'caseId': case.get('_id'), 'serviceProvider': ObjectId(current_user)})
+                # # If proposal exists, then send proposal status in response.
+                # case['proposalStatus'] = proposal.get('status')
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {
@@ -65,7 +67,7 @@ class ServiceProviderCasesActive(Resource):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         cases = []
-        for case in mongo.db.cases.find({"$and": [{"status": "On-progress"}, {"serviceProvider": ObjectId(current_user)}]}):
+        for case in mongo.db.cases.find({"$and": [{"status": "On-progress"}, {"serviceProvider": ObjectId(current_user)}]}).sort("_id", -1):
             cases.append(case)
         return json.loads(json.dumps(cases, default=json_util.default))
         

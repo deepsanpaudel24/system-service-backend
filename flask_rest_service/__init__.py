@@ -158,38 +158,57 @@ def UpdateUserType():
     return {"message": "User does not exist."}, 404
 
 
+
 from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmation, 
                                             UserLogin, Profile, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, 
                                             UpdateUserProfileBilling, CheckUserValidity, ForgotPassword, ResetPassword,
                                             EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList, EmployeeDetails,
-                                            ClientRegister, UserClientList, PeopleRegister, PeopleDetails
+                                            ClientRegister, UserClientList, PeopleRegister, PeopleDetails, EmployeeSetupPassword,
+                                            ClientSetupPassword, SendEmailConfirmation, SendEmployeeEmailInvitation, ClientEmailConfrimation,
+                                            PeopleInvitationEmail
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
-                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive,
+                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP
                                                 )
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
 
 from flask_rest_service.notifications import Notifcations
 
-from flask_rest_service.timers import AddTimer, TotalSpentTime, AddNonCaseTimer, UpdateNonCaseTimer
+from flask_rest_service.timers import AddTimer, TotalSpentTime
+
+from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails
+
+from flask_rest_service.form_generation import IntakeForm
+
+from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, TestGoogleApi, Revoke, ClearCredentials, MakeDocs, MakeSlides,
+                         MakeSpreadsheets, MakeFileInsideFolder )
+
+
 
 api.add_resource(UserLogin, '/api/v1/user/login')
 api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UserRegister, '/api/v1/user/register')
+api.add_resource(SendEmailConfirmation, '/api/v1/user/send-email-confirmation')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
 api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserEmployeeList, '/api/v1/user/employee/list')
 api.add_resource(Profile, '/user/profile')
+
+# User profile type setup 
 api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
 api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
 api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
 api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')
+
+# Employee related APIs
 api.add_resource(EmployeeRegister, '/api/v1/user/employee/register')
+api.add_resource(SendEmployeeEmailInvitation, '/api/v1/user/employee/send-email-confirmation')
 api.add_resource(EmployeeDetails, '/api/v1/employee/<id>')
+api.add_resource(EmployeeSetupPassword, '/api/v1/user/employee/setup-password/<token>')
 api.add_resource(SerivceProvidersList, '/api/v1/service-providers/list')
 api.add_resource(ClientsList, '/api/v1/clients/list')
 
@@ -204,6 +223,7 @@ api.add_resource(ServiceProviderCasesDetails, '/api/v1/case-sp/<id>')
 api.add_resource(ReplyCaseRequest, '/api/v1/case-request/reply/<caseId>')
 api.add_resource(CaseProposals, '/api/v1/case/proposals/<caseId>')
 api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
+api.add_resource(ProposalDetailsForSP, '/api/v1/propsal-sp/<caseId>')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -211,15 +231,33 @@ api.add_resource(ServicesList, '/api/v1/services')
 api.add_resource(SaViewServicesList, '/api/v1/services/<ownerid>')
 
 api.add_resource(ClientRegister, '/api/v1/client/register')
+api.add_resource(ClientEmailConfrimation, '/api/v1/client/send-email-confirmation')
+api.add_resource(ClientSetupPassword, '/api/v1/user/client/setup-password/<token>')
 api.add_resource(UserClientList, '/api/v1/clients')
 
 # Api naming considered for the sencond time from here
 api.add_resource(PeopleRegister, '/api/v1/peoples')
+api.add_resource(PeopleInvitationEmail, '/api/v1/people/send-email-confirmation')
 api.add_resource(PeopleDetails, '/api/v1/peoples/<id>')
 
 api.add_resource(Notifcations, '/api/v1/notifications')
 
 api.add_resource(AddTimer, '/api/v1/timers')
 api.add_resource(TotalSpentTime, '/api/v1/total-time/<caseId>')
-api.add_resource(AddNonCaseTimer, '/api/v1/non-case-timer')
-api.add_resource(UpdateNonCaseTimer, '/api/v1/non-case-timer/<timerId>')
+
+api.add_resource(AddCustomTask, '/api/v1/tasks')
+api.add_resource(CustomTasksDetails, '/api/v1/tasks/<id>')
+
+api.add_resource(IntakeForm, '/api/v1/intake-form')
+
+api.add_resource(Authorize, '/api/v1/authorize')
+api.add_resource(OAuth2CallBack, '/api/v1/oauth2callback')
+api.add_resource(TestGoogleApi, '/api/v1/test')
+api.add_resource(Revoke, '/api/v1/revoke')
+api.add_resource(ClearCredentials, '/api/v1/clear')
+api.add_resource(MakeDocs, '/api/v1/mk-docs')
+api.add_resource(MakeSlides, '/api/v1/mk-slides')
+api.add_resource(MakeSpreadsheets, '/api/v1/mk-sheets')
+api.add_resource(MakeFileInsideFolder, '/api/v1/mk-fif')
+
+

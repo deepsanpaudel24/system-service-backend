@@ -1,6 +1,7 @@
 import os
 from flask import jsonify
 from flask_rest_service import app, api, mongo, mail
+# from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import jwt_required, get_jwt_claims, get_jwt_identity
 from bson.objectid import ObjectId

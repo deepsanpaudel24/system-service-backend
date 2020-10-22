@@ -1,4 +1,5 @@
 from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from functools import reduce

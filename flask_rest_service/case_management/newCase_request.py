@@ -1,11 +1,16 @@
 from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson.objectid import ObjectId
 import json
+import werkzeug
+from werkzeug.utils import secure_filename
 from bson import json_util
 from datetime import datetime
+import os
 
+_parse = reqparse.RequestParser()
 
 _newCaseRequest_parser =  reqparse.RequestParser()
 
@@ -20,9 +25,9 @@ _newCaseRequest_parser.add_argument('desc',
                         help="This field cannot be blank."
                     )
 _newCaseRequest_parser.add_argument('budget',
-                        type=int,
+                        type=str,
                         required=False,
-                        help="This field cannot be blank."
+                        help="This field is blank."
                     )
 _newCaseRequest_parser.add_argument('deadline',
                         type=str,
@@ -34,6 +39,8 @@ _newCaseRequest_parser.add_argument('caseTags',
                         required=False,
                         help="This field cannot be blank."
                     )
+# _newCaseRequest_parser.add_argument(
+#     'sentFiles', type=werkzeug.datastructures.FileStorage, location='files')
 
 class AddNewCaseRequest(Resource):
     @jwt_required
@@ -42,6 +49,23 @@ class AddNewCaseRequest(Resource):
         data = _newCaseRequest_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         caseTags = data['caseTags'].split(',')
+
+        # files = data['sentFiles']
+        # filename = secure_filename(files.filename)
+        # files.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        myFiles = request.files
+        for key in myFiles:
+            _parse.add_argument(
+                key, type=werkzeug.datastructures.FileStorage, location='files')
+        args = _parse.parse_args()
+        filesLocationList = []
+        for key in myFiles:
+            file = args[key]
+            filename = secure_filename(file.filename)
+            filesLocationList.append(f"{app.config['UPLOAD_FOLDER']}/{filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
         id = mongo.db.cases.insert({
             'title': data['title'],
             'desc': data['desc'],
@@ -51,6 +75,7 @@ class AddNewCaseRequest(Resource):
             'status': "Requested",
             'client': ObjectId(current_user),
             'clientName': user.get('name'),
+            'files': filesLocationList,
             'requestedDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection cases           
         # insert new notification details in notification collection

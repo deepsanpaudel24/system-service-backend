@@ -1,6 +1,7 @@
 import os
 from flask import jsonify
 from flask_rest_service import app, api, mongo, mail
+# from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -23,6 +24,11 @@ _employee_parser.add_argument('email',
 _employee_setup_password_parser = reqparse.RequestParser()
 
 _employee_setup_password_parser.add_argument('password',
+                                            type=str,
+                                            required=True,
+                                            help="This field cannot be blank"
+                                            )
+_employee_setup_password_parser.add_argument('confirm-password',
                                             type=str,
                                             required=True,
                                             help="This field cannot be blank"
@@ -69,54 +75,61 @@ class EmployeeRegister(Resource):
                     'profile_billing_completion': True,
                     'logout': True,
                     'createdDate': datetime.today().strftime('%Y-%m-%d')
-                })                           # insert the data in the collection users 
-                token = s.dumps(data['email'], salt='employee-email-confirm')
-                link_react = "http://localhost:3000/user/employee/password-setup/{}".format(token)
-                msg = Message(
-                    subject = "Email confirmation for Service-System",
-                    sender = os.environ['GMAIL_USERNAME'],
-                    recipients=[data['email']],
-                    body="You have been invited on Service-System. Please open the link to verify setup your account. {}".format(link_react) 
-                )
-                mail.send(msg)                                                                                             
+                })                           # insert the data in the collection users                                                                                              
                 return {"message": "Employee added successfully! "}, 201
             return {"message": "You are not allowed to add employee"}, 403
         return {
             "message": "Failed to add employee"
         }, 403
 
+class SendEmployeeEmailInvitation(Resource):
+    @jwt_required
+    def post(self):
+        data = _employee_parser.parse_args()
+        token = s.dumps(data['email'], salt='employee-email-confirm')
+        link_react = "http://localhost:3000/user/employee/password-setup/{}".format(token)
+        msg = Message(
+            subject = "Email confirmation for Service-System",
+            sender = os.environ['GMAIL_USERNAME'],
+            recipients=[data['email']],
+            body="You have been invited on Service-System. Please open the link to verify setup your account. {}".format(link_react) 
+        )
+        mail.send(msg)
+
 class UserEmployeeList(Resource):
     @jwt_required
     def get(self):
         current_user = get_jwt_identity()
         employees = []
-        for emp in mongo.db.users.find({'owner': ObjectId(current_user)}):
+        for emp in mongo.db.users.find({'owner': ObjectId(current_user)}).sort("_id", -1):
             employees.append(emp)
         return json.loads(json.dumps(employees, default=json_util.default))
 
 
 # Reset password confirmation of the user 
 class EmployeeSetupPassword(Resource):
-    def post(self, token):
+    def put(self, token):
         try:
             data = _employee_setup_password_parser.parse_args()
             setup_password_employee = s.loads(token, salt='employee-email-confirm', max_age=600)
             if setup_password_employee:
-                user = mongo.db.users.find_one({'email': setup_password_employee})
-                _hased_password = generate_password_hash(data['password'])      # Password hasing
-                if user:
-                    mongo.db.users.update_one({'email': setup_password_employee}, {
-                        '$set':{
-                            'password': _hased_password,
-                            'is_verified': True
-                        }
-                    })
+                if data['password'] == data['confirm-password']:
+                    user = mongo.db.users.find_one({'email': setup_password_employee})
+                    _hased_password = generate_password_hash(data['password'])      # Password hasing
+                    if user:
+                        mongo.db.users.update_one({'email': setup_password_employee}, {
+                            '$set':{
+                                'password': _hased_password,
+                                'is_verified': True
+                            }
+                        })
+                        return {
+                            "message": "Password Updated successfully",
+                        }, 200
                     return {
-                        "message": "Password Updated successfully",
-                    }, 200
-                return {
-                    "message": "User not found"
-                }, 404
+                        "message": "User not found"
+                    }, 404
+                return { "message", "Password and confirm password does not match"}, 403
         except SignatureExpired:
             return {"message": "The verification token has expired now. Please reset again."}, 401
         except BadTimeSignature:

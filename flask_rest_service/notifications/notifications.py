@@ -1,6 +1,7 @@
 import os
 from flask import jsonify
-from flask_rest_service import app, api, mongo, mail
+from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -16,6 +17,6 @@ class Notifcations(Resource):
     def get(self):
         current_user = get_jwt_identity()
         notify_list = []
-        for notify in mongo.db.notifications.find({'receiver': ObjectId(current_user)}):
+        for notify in mongo.db.notifications.find({'receiver': ObjectId(current_user)}).sort("_id", -1):
             notify_list.append(notify)
         return json.loads(json.dumps(notify_list, default=json_util.default))

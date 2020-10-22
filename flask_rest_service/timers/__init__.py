@@ -1,2 +1,1 @@
 from flask_rest_service.timers.timer import AddTimer, TotalSpentTime
-from flask_rest_service.timers.non_case_timer import AddNonCaseTimer, UpdateNonCaseTimer

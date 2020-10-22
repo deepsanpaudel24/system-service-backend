@@ -1,4 +1,5 @@
 from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson.objectid import ObjectId
@@ -37,7 +38,7 @@ class ServicesList(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
             services = []
-            for service in mongo.db.services.find({'owner': ObjectId(current_user)}):
+            for service in mongo.db.services.find({'owner': ObjectId(current_user)}).sort("_id", -1):
                 services.append(service)
             return json.loads(json.dumps(services, default=json_util.default))
         return {
@@ -51,7 +52,7 @@ class SaViewServicesList(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SA" or user.get('user_type') == "SAe":
             services = []
-            for service in mongo.db.services.find({'owner': ObjectId(ownerid)}):
+            for service in mongo.db.services.find({'owner': ObjectId(ownerid)}).sort("_id", -1):
                 services.append(service)
             return json.loads(json.dumps(services, default=json_util.default))
         return {

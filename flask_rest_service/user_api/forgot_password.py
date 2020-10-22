@@ -1,5 +1,6 @@
 import os
 from flask_rest_service import app, api, mongo, mail
+# from main import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp

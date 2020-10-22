@@ -1,0 +1,1 @@
+from flask_rest_service.form_generation.intake_form import IntakeForm
