@@ -17,7 +17,7 @@ import datetime
 
 MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
-cors = CORS(app, resources={r"/api/*": {"origins": "*"}})
+cors = CORS(app)
 app.secret_key = "service-system"
 app.config['MONGO_URI'] = MONGO_URL
 app.config['JWT_BLACKLIST_ENABLED'] = True
@@ -184,7 +184,7 @@ from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails
 from flask_rest_service.form_generation import IntakeForm
 
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, TestGoogleApi, Revoke, ClearCredentials, MakeDocs, MakeSlides,
-                         MakeSpreadsheets, MakeFileInsideFolder )
+                         MakeSpreadsheets, MakeFileInsideFolder, GoogleCredentialsDetails )
 
 
 
@@ -250,6 +250,7 @@ api.add_resource(CustomTasksDetails, '/api/v1/tasks/<id>')
 
 api.add_resource(IntakeForm, '/api/v1/intake-form')
 
+api.add_resource(GoogleCredentialsDetails, '/api/v1/google-credentials-details')
 api.add_resource(Authorize, '/api/v1/authorize')
 api.add_resource(OAuth2CallBack, '/api/v1/oauth2callback')
 api.add_resource(TestGoogleApi, '/api/v1/test')

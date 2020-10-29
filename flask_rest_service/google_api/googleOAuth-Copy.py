@@ -1,6 +1,13 @@
-import requests
 from flask import jsonify, redirect, url_for, redirect, session, request
 from flask_restful import Resource
+from flask_rest_service import app, api, mongo
+#from main import app, api, mongo, mail
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from bson.objectid import ObjectId
+import json
+from bson import json_util
+import os
+import requests
 
 import googleapiclient.discovery
 import google_auth_oauthlib.flow
@@ -34,12 +41,13 @@ def credentials_to_dict(credentials):
 
 class TestGoogleApi(Resource):
     def get(self):
-        if 'credentials' not in session:
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
             return redirect('authorize')
 
         # Load credentials from the session.
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
 
         drive = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)
@@ -49,7 +57,12 @@ class TestGoogleApi(Resource):
         # Save credentials back to session in case access token was refreshed.
         # ACTION ITEM: In a production app, you likely want to save these
         #              credentials in a persistent database instead.
-        session['credentials'] = credentials_to_dict(credentials)
+        #session['credentials'] = credentials_to_dict(credentials)
+        mongo.db.google_credentials.update_one({"userId" : "client1"}, {
+                    '$set': {
+                    'credentials': credentials_to_dict(credentials)
+                }
+            })
 
         return jsonify(**files)
 
@@ -97,19 +110,25 @@ class OAuth2CallBack(Resource):
         # ACTION ITEM: In a production app, you likely want to save these
         #              credentials in a persistent database instead.
         credentials = flow.credentials
-        session['credentials'] = credentials_to_dict(credentials)
+        # insert these credentials in database
+        id = mongo.db.google_credentials.insert({
+            "userId": "client1",
+            "credentials" : credentials_to_dict(credentials)
+        })
+        #session['credentials'] = credentials_to_dict(credentials)
 
         return redirect(url_for('testgoogleapi'))
 
 
 class Revoke(Resource):
     def get(self):
-        if 'credentials' not in session:
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
             return jsonify('You need to authorizebefore ' +
                            'testing the code to revoke credentials.')
 
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
 
         revoke = requests.post('https://oauth2.googleapis.com/revoke',
                                params={'token': credentials.token},
@@ -124,15 +143,21 @@ class Revoke(Resource):
 
 class ClearCredentials(Resource):
     def get(self):
-        if 'credentials' in session:
-            del session['credentials']
-        return jsonify('Credentials have been cleared.')
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if google_credentials:
+            delete_credentials = mongo.db.google_credentials.remove({'userId': "client1"})
+            return {"message": "Credentials have been cleared."}, 200
+        return {"message": "Google credentials not found"}
 
 
 class MakeSpreadsheets(Resource):
     def get(self):
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
+            return redirect('authorize')
+
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
 
         sheet_service = googleapiclient.discovery.build(
             'sheets', 'v4', credentials=credentials)
@@ -148,8 +173,13 @@ class MakeSpreadsheets(Resource):
 
 class MakeDocs(Resource):
     def get(self):
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
+            return redirect('authorize')
+
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
+
         title = 'damaulihahah'
         doc_service = googleapiclient.discovery.build(
             'docs', 'v1', credentials=credentials)
@@ -164,8 +194,13 @@ class MakeDocs(Resource):
 
 class MakeSlides(Resource):
     def get(self):
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
+            return redirect('authorize')
+
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
+
         title = 'myslide'
         slides_service = googleapiclient.discovery.build(
             'slides', 'v1', credentials=credentials)
@@ -181,8 +216,12 @@ class MakeSlides(Resource):
 class MakeFileInsideFolder(Resource):
     def get(self):
         # Create a folder
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        if not google_credentials:
+            return redirect('authorize')
+
         credentials = google.oauth2.credentials.Credentials(
-            **session['credentials'])
+            **google_credentials.get('credentials'))
 
         drive_service = googleapiclient.discovery.build(
             API_SERVICE_NAME, API_VERSION, credentials=credentials)

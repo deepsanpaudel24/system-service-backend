@@ -40,8 +40,10 @@ def credentials_to_dict(credentials):
 
 
 class TestGoogleApi(Resource):
+    @jwt_required
     def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
+        current_user = get_jwt_identity()
+        google_credentials = mongo.db.google_credentials.find_one({"userId" : ObjectId(current_user)})
         if not google_credentials:
             return redirect('authorize')
 
@@ -58,7 +60,7 @@ class TestGoogleApi(Resource):
         # ACTION ITEM: In a production app, you likely want to save these
         #              credentials in a persistent database instead.
         #session['credentials'] = credentials_to_dict(credentials)
-        mongo.db.google_credentials.update_one({"userId" : "client1"}, {
+        mongo.db.google_credentials.update_one({"userId" : ObjectId(current_user)}, {
                     '$set': {
                     'credentials': credentials_to_dict(credentials)
                 }
@@ -68,6 +70,7 @@ class TestGoogleApi(Resource):
 
 
 class Authorize(Resource):
+    @jwt_required
     def get(self):
         # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
         flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
@@ -93,6 +96,7 @@ class Authorize(Resource):
 
 
 class OAuth2CallBack(Resource):
+    @jwt_required
     def get(self):
         # Specify the state when creating the flow in the callback so that it can
         # verified in the authorization server response.
@@ -110,9 +114,10 @@ class OAuth2CallBack(Resource):
         # ACTION ITEM: In a production app, you likely want to save these
         #              credentials in a persistent database instead.
         credentials = flow.credentials
+        current_user = get_jwt_identity()
         # insert these credentials in database
         id = mongo.db.google_credentials.insert({
-            "userId": "client1",
+            "userId": ObjectId(current_user),
             "credentials" : credentials_to_dict(credentials)
         })
         #session['credentials'] = credentials_to_dict(credentials)

@@ -6,4 +6,5 @@ from flask_rest_service.google_api.googleOAuth import ( Authorize,
     MakeDocs,
     MakeSlides,
     MakeSpreadsheets,
-    MakeFileInsideFolder )
+    MakeFileInsideFolder)
+from flask_rest_service.google_api.drive_details_api import  GoogleCredentialsDetails 
