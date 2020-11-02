@@ -5,7 +5,10 @@ from flask_rest_service import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import jwt_required, get_jwt_claims, get_jwt_identity
 from bson.objectid import ObjectId
+import werkzeug
+from werkzeug.utils import secure_filename
 
+_parse = reqparse.RequestParser()
 
 _user_parser =  reqparse.RequestParser()
 
@@ -38,16 +41,52 @@ _basicProfile_parser.add_argument('registration_number',
                                 help="This field cannot be blank."
                             )
 
+
 _detailedProfile_parser = reqparse.RequestParser()
 
 _detailedProfile_parser.add_argument('service_type',
                                 type=str,
-                                required=True,
+                                required=False,
                                 help="This field cannot be blank."
                             )
 _detailedProfile_parser.add_argument('service_categories',
                                 type=str,
-                                required=True,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('name',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('address',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('phone_number',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('registration_number',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('personal_number',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('currency_preferences',
+                                type=str,
+                                required=False,
+                                help="This field cannot be blank."
+                            )
+_detailedProfile_parser.add_argument('date_preferences',
+                                type=str,
+                                required=False,
                                 help="This field cannot be blank."
                             )
 
@@ -114,6 +153,34 @@ class UpdateUserProfileBasic(Resource):
             "message": "User does not exist"
         }, 400
 
+class UpdateUserIntro(Resource):
+    @jwt_required
+    def put(self):
+        current_user = get_jwt_identity()
+        myFiles = request.files
+        for key in myFiles:
+            _parse.add_argument(
+                key, type=werkzeug.datastructures.FileStorage, location='files')
+        args = _parse.parse_args()
+        filesLocationList = []
+        for key in myFiles:
+            file = args[key]
+            filename = secure_filename(file.filename)
+            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
+            filesLocationList.append(f"{dirToSaveFile}/{filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user:
+            mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
+                    '$set': {
+                    'files': filesLocationList
+                }
+            })
+            return {
+                "message": "Intro file updated"
+            }, 200
+
 class UpdateUserProfileDetailed(Resource):
     @jwt_required
     def put(self):
@@ -126,7 +193,15 @@ class UpdateUserProfileDetailed(Resource):
                     '$set': {
                     'service_type': detailedData['service_type'],
                     'service_categories': serviceTags,
-                    'profile_detailed_completion': True
+                    'name': detailedData['name'],
+                    'address': detailedData['address'],
+                    'phone_number': detailedData['phone_number'],
+                    'registration_number': detailedData['registration_number'],
+                    'personal_number': detailedData['personal_number'],
+                    'currency_preferences': detailedData['currency_preferences'],
+                    'date_preferences': detailedData['date_preferences'],
+                    'profile_detailed_completion': True,
+                    'profile_basic_completion':True
                 }
             })
             resp = jsonify({

@@ -1,255 +1,205 @@
 from flask import jsonify, redirect, url_for, redirect, session, request
 from flask_restful import Resource
 from flask_rest_service import app, api, mongo
-#from main import app, api, mongo, mail
-from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required, jwt_optional
 from bson.objectid import ObjectId
 import json
 from bson import json_util
 import os
 import requests
-
-import googleapiclient.discovery
-import google_auth_oauthlib.flow
-import google.oauth2.credentials
+from datetime import datetime, timedelta
 
 
-# This variable specifies the name of a file that contains the OAuth 2.0
-# information for this application, including its client_id and client_secret.
-CLIENT_SECRETS_FILE = "client_secret.json"
 
-# This OAuth 2.0 access scope allows for full read/write access to the
-# authenticated user's account and requires requests to use an SSL connection.
-SCOPES = ['https://www.googleapis.com/auth/drive',
-          'https://www.googleapis.com/auth/drive.file',
-          'https://www.googleapis.com/auth/drive.readonly',
-          'https://www.googleapis.com/auth/spreadsheets',
-          'https://www.googleapis.com/auth/spreadsheets.readonly']
-
-API_SERVICE_NAME = 'drive'
-API_VERSION = 'v3'
-
-
-def credentials_to_dict(credentials):
-    return {'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes}
-
-
-class TestGoogleApi(Resource):
-    @jwt_required
-    def get(self):
-        current_user = get_jwt_identity()
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : ObjectId(current_user)})
-        if not google_credentials:
-            return redirect('authorize')
-
-        # Load credentials from the session.
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
-
-        drive = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
-        files = drive.files().list().execute()
-
-        # Save credentials back to session in case access token was refreshed.
-        # ACTION ITEM: In a production app, you likely want to save these
-        #              credentials in a persistent database instead.
-        #session['credentials'] = credentials_to_dict(credentials)
-        mongo.db.google_credentials.update_one({"userId" : ObjectId(current_user)}, {
-                    '$set': {
-                    'credentials': credentials_to_dict(credentials)
-                }
-            })
-
-        return jsonify(**files)
+CLIENT_ID = '715950681414-l4h7td0sunglcjc0g44mtf15cudcak31.apps.googleusercontent.com'
+CLIENT_SECRET = 'kQV-BoxSPv6NMXYLGYxobzfM'  # Read from a file or environmental variable in a real app
+SCOPE = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'
+REDIRECT_URI = 'http://127.0.0.1:5000/api/v1/oauth2callback'
 
 
 class Authorize(Resource):
-    @jwt_required
+    @jwt_optional
     def get(self):
-        # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
-        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE, scopes=SCOPES)
+        current_user = get_jwt_identity()
+        # for the first time when the user authorize, current_user is not empty 
+        if current_user:
+            google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(current_user)})
+        # this is the case which comes from OAuth2CallBack when it redirects after saving the google credentials
+        else:
+            document = mongo.db.google_credentials.find().sort("_id", -1).limit(1)
+            google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(document[0]['userId'])})
 
-        # The URI created here must exactly match one of the authorized redirect URIs
-        # for the OAuth 2.0 client, which you configured in the API Console. If this
-        # value doesn't match an authorized URI, you will get a 'redirect_uri_mismatch'
-        # error.
-        flow.redirect_uri = url_for('oauth2callback', _external=True)
-
-        authorization_url, state = flow.authorization_url(
-            # Enable offline access so that you can refresh an access token without
-            # re-prompting the user for permission. Recommended for web server apps.
-            access_type='offline',
-            # Enable incremental authorization. Recommended as a best practice.
-            include_granted_scopes='true')
-
-        # Store the state so the callback can verify the auth server response.
-        session['state'] = state
-
-        return redirect(authorization_url)
-
+        if not google_credentials:
+            id = mongo.db.google_credentials.insert({
+                'userId':ObjectId(current_user)
+            })
+            return redirect(url_for('oauth2callback'))
+    
+        credentials = google_credentials['credentials']
+        if datetime.now() >= google_credentials['expiretime']:
+            return redirect(url_for('oauth2callback'))
+        else:
+            return redirect('http://localhost:3000/user/profile-setting')
+            
 
 class OAuth2CallBack(Resource):
-    @jwt_required
     def get(self):
-        # Specify the state when creating the flow in the callback so that it can
-        # verified in the authorization server response.
-        state = session['state']
+        if 'code' not in request.args:
+            auth_uri = ('https://accounts.google.com/o/oauth2/v2/auth?response_type=code'
+                        '&client_id={}&redirect_uri={}&scope={}&access_type=offline& include_granted_scopes=true').format(CLIENT_ID, REDIRECT_URI, SCOPE)
+            return {'auth_uri':auth_uri}
+        else:
+            auth_code = request.args.get('code')
+            data = {'code': auth_code,
+                    'client_id': CLIENT_ID,
+                    'client_secret': CLIENT_SECRET,
+                    'redirect_uri': REDIRECT_URI,
+                    'grant_type': 'authorization_code'
+                    }
+            resp = requests.post('https://oauth2.googleapis.com/token', data=data)
 
-        flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
-            CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
-        flow.redirect_uri = url_for('oauth2callback', _external=True)
-
-        # Use the authorization server's response to fetch the OAuth 2.0 tokens.
-        authorization_response = request.url
-        flow.fetch_token(authorization_response=authorization_response)
-
-        # Store credentials in the session.
-        # ACTION ITEM: In a production app, you likely want to save these
-        #              credentials in a persistent database instead.
-        credentials = flow.credentials
-        current_user = get_jwt_identity()
-        # insert these credentials in database
-        id = mongo.db.google_credentials.insert({
-            "userId": ObjectId(current_user),
-            "credentials" : credentials_to_dict(credentials)
-        })
-        #session['credentials'] = credentials_to_dict(credentials)
-
-        return redirect(url_for('testgoogleapi'))
-
+            # Now, update the lastest document inserted in the google_credentials with the resp.json()
+            # resp.json() is the credentials from google
+            document = mongo.db.google_credentials.find().sort("_id", -1).limit(1)
+            mongo.db.google_credentials.update_one({'_id': ObjectId(document[0]['_id'])}, {
+                    '$set': {
+                    'credentials': resp.json(),
+                    'refresh_token': resp.json()['refresh_token'],
+                    'expiretime': datetime.now() + timedelta(seconds=3000)  
+                }
+            })
+            return redirect(url_for('authorize'))
 
 class Revoke(Resource):
     def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if not google_credentials:
-            return jsonify('You need to authorizebefore ' +
-                           'testing the code to revoke credentials.')
+        if 'credentials' not in session:
+            redirect(url_for('authorize'))
+        credentials = json.loads(session['credentials'])
+        resp=requests.post('https://oauth2.googleapis.com/revoke',params={'token': credentials['access_token']},headers = {'content-type': 'application/x-www-form-urlencoded'})
 
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
-
-        revoke = requests.post('https://oauth2.googleapis.com/revoke',
-                               params={'token': credentials.token},
-                               headers={'content-type': 'application/x-www-form-urlencoded'})
-
-        status_code = getattr(revoke, 'status_code')
+        status_code = getattr(resp, 'status_code')
         if status_code == 200:
             return jsonify('Credentials successfully revoked.')
         else:
             return jsonify('An error occurred.')
 
-
 class ClearCredentials(Resource):
     def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if google_credentials:
-            delete_credentials = mongo.db.google_credentials.remove({'userId': "client1"})
-            return {"message": "Credentials have been cleared."}, 200
-        return {"message": "Google credentials not found"}
+        if 'credentials' in session:
+            del session['credentials']
+            return jsonify('Credentials have been cleared')
+        return jsonify('Not found google credentials')
 
 
-class MakeSpreadsheets(Resource):
-    def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if not google_credentials:
-            return redirect('authorize')
+class GoogleDriveFetchFiles(Resource):
+    @jwt_required
+    def get(self, folder_name):
+        current_user = get_jwt_identity()
+        google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(current_user)})
+        credentials = google_credentials['credentials']
+        # refreshing the access token 
+        if datetime.now() >= google_credentials['expiretime']:
+            data = {
+                    'client_id': CLIENT_ID,
+                    'client_secret': CLIENT_SECRET,
+                    'grant_type': 'refresh_token',
+                    'refresh_token': google_credentials['refresh_token']
+                    }
+            resp = requests.post('https://oauth2.googleapis.com/token', data=data)
+            mongo.db.google_credentials.update_one({'userId': ObjectId(current_user)}, {
+                    '$set': {
+                    'credentials': resp.json(),
+                    'expiretime': datetime.now() + timedelta(seconds=3000)  
+                }
+            })
+            # gets the updated google credentials
+            google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(current_user)})
+            credentials = google_credentials['credentials']
 
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
+        req_uri = 'https://www.googleapis.com/drive/v3/files'
+        headers_for_querying = {'Authorization': 'Bearer {}'.format(credentials['access_token'])}
 
-        sheet_service = googleapiclient.discovery.build(
-            'sheets', 'v4', credentials=credentials)
-        spreadsheet = {
-            'properties': {
-                'title': "freefire4"
+        # step 1st: querying  if folder exist or not 
+        query = {'q': f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder'"} 
+        resp = requests.get(req_uri, headers=headers_for_querying,params=query)
+        resp_in_obj=resp.json()
+        folder_info = resp_in_obj['files'][0]
+        folder_id = folder_info.get('id')
+        query2 = {'q': f"'{folder_id}' in parents"} 
+        resp2 = requests.get(req_uri, headers=headers_for_querying,params=query2)
+        return resp2.json()
+
+
+
+class GoogleDriveCreateFile(Resource):
+    @jwt_required
+    def post(self):
+        data = request.get_json()
+        file_type = data['file_type']
+        folder_name = data['folder_name']
+        file_name= data['file_name']
+        current_user = get_jwt_identity()
+        google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(current_user)})
+        credentials = google_credentials['credentials']
+        # refreshing the access token 
+        if datetime.now() >= google_credentials['expiretime']:
+            data = {
+                    'client_id': CLIENT_ID,
+                    'client_secret': CLIENT_SECRET,
+                    'grant_type': 'refresh_token',
+                    'refresh_token': google_credentials['refresh_token']
+                    }
+            resp = requests.post('https://oauth2.googleapis.com/token', data=data)
+            mongo.db.google_credentials.update_one({'userId': ObjectId(current_user)}, {
+                    '$set': {
+                    'credentials': resp.json(),
+                    'expiretime': datetime.now() + timedelta(seconds=3000)  
+                }
+            })
+            # gets the updated google credentials
+            google_credentials = mongo.db.google_credentials.find_one({'userId':ObjectId(current_user)})
+            credentials = google_credentials['credentials']
+
+        req_uri = 'https://www.googleapis.com/drive/v3/files'
+        headers_for_querying = {'Authorization': 'Bearer {}'.format(credentials['access_token'])}
+        headers_for_creating = {
+            'Authorization': 'Bearer {}'.format(credentials['access_token']),
+            'Content-Type': 'application/json'
             }
-        }
-        spreadsheet = sheet_service.spreadsheets().create(body=spreadsheet,
-                                                          fields='spreadsheetId').execute()
-        return redirect(f"https://docs.google.com/spreadsheets/d/{spreadsheet.get('spreadsheetId')}/edit#gid=0")
 
-
-class MakeDocs(Resource):
-    def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if not google_credentials:
-            return redirect('authorize')
-
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
-
-        title = 'damaulihahah'
-        doc_service = googleapiclient.discovery.build(
-            'docs', 'v1', credentials=credentials)
-        body = {
-            'title': title
-        }
-        doc = doc_service.documents() \
-            .create(body=body).execute()
-
-        return redirect(f"https://docs.google.com/document/d/{doc.get('documentId')}/edit")
-
-
-class MakeSlides(Resource):
-    def get(self):
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if not google_credentials:
-            return redirect('authorize')
-
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
-
-        title = 'myslide'
-        slides_service = googleapiclient.discovery.build(
-            'slides', 'v1', credentials=credentials)
-        body = {
-            'title': title
-        }
-        presentation = slides_service.presentations() \
-            .create(body=body).execute()
-
-        return redirect(f"https://docs.google.com/presentation/d/{presentation.get('presentationId')}/edit")
-
-
-class MakeFileInsideFolder(Resource):
-    def get(self):
-        # Create a folder
-        google_credentials = mongo.db.google_credentials.find_one({"userId" : "client1"})
-        if not google_credentials:
-            return redirect('authorize')
-
-        credentials = google.oauth2.credentials.Credentials(
-            **google_credentials.get('credentials'))
-
-        drive_service = googleapiclient.discovery.build(
-            API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
+        # step 1st: querying  if folder exist or not 
+        query = {'q': f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder'"} 
+        resp = requests.get(req_uri, headers=headers_for_querying,params=query)
+        resp_in_obj=resp.json()
+        # stet2 : if exist and or not what is folder id will be
+        folder_id = "" 
+        if resp_in_obj['files']:
+            folder_info = resp_in_obj['files'][0]
+            folder_id = folder_info.get('id')
+        else:
+            # if there is not folder then create one and set folder id
+            folder_data = {
+              'name': folder_name,
+              'mimeType': 'application/vnd.google-apps.folder',
+            }
+            folder_resp = requests.post(req_uri, headers=headers_for_creating, data=json.dumps(folder_data))
+            folder_resp_in_obj = folder_resp.json()
+            folder_id = folder_resp_in_obj.get('id')
+        
+        
+        #step 3: Creating a file inside the folder according to folder id
         file_metadata = {
-            'name': 'Hometown',
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
-        folder = drive_service.files().create(body=file_metadata,
-                                              fields='id').execute()
-        # Create a file in a folder
-        folder_id = folder.get('id')
-
-        # 'mimeType': 'application/vnd.google-apps.spreadsheet'
-        # 'mimeType': 'application/vnd.google-apps.document'
-        # 'mimeType': 'application/vnd.google-apps.presentation'
-
-        file_metadata = {
-            'name': 'MyhomeTown',
-            'mimeType': 'application/vnd.google-apps.document',
-            'parents': [folder_id]
-        }
-        file = drive_service.files().create(body=file_metadata,
-                                            fields='id').execute()
-        print('File ID: %s' % file.get('id'))
-        return jsonify(file)
+                    'name': file_name,
+                    'mimeType': f"application/vnd.google-apps.{file_type}",
+                    'parents': [folder_id]
+            }
+        file_resp = requests.post(req_uri, headers=headers_for_creating, data=json.dumps(file_metadata))
+        file_resp_in_obj = file_resp.json()
+        file_id = file_resp_in_obj.get('id')
+        if data['file_type'] == "document":
+            redirect_to = f"https://docs.google.com/document/d/{file_id}/edit"
+        elif data['file_type'] == "presentation":
+            redirect_to = f"https://docs.google.com/presentation/d/{file_id}/edit"
+        else:
+            redirect_to = f"https://docs.google.com/spreadsheets/d/{file_id}/edit#gid=0"
+        return {'redirect_to': redirect_to}

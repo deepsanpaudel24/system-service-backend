@@ -63,7 +63,8 @@ class AddNewCaseRequest(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
-            filesLocationList.append(f"{app.config['UPLOAD_FOLDER']}/{filename}")
+            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
+            filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         
         id = mongo.db.cases.insert({

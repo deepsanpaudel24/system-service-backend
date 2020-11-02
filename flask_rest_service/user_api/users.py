@@ -118,7 +118,7 @@ class SendEmailConfirmation(Resource):
         link = url_for('emailconfirmation', token=token, _external=True)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = os.environ['GMAIL_USERNAME'],
+            sender = "rukshan.shady@gmail.com",
             recipients=[data['email']],
             body="Thank you for signing up on Service-System. Please open the verification link to verify your email. Incase you have not setupyour password yourself then please use the temporary password systemserivce12 {}".format(link) 
         )
@@ -166,7 +166,8 @@ class CheckUserValidity(Resource):
                 "profile_detailed_completion": user.get("profile_detailed_completion"),
                 "profile_basic_completion": user.get("profile_basic_completion"),
                 "serviceManagement": user.get("serviceManagement"),
-                "clientManagement": user.get("clientManagement")
+                "clientManagement": user.get("clientManagement"),
+                "name": user.get("name")
             }, 200
         if user:
             return {
@@ -175,6 +176,7 @@ class CheckUserValidity(Resource):
                 "user_type": user.get("user_type"),
                 "profile_detailed_completion": user.get("profile_detailed_completion"),
                 "profile_basic_completion": user.get("profile_basic_completion"),
+                "name": user.get("name")
             }, 200
         return {
             "isAuthenticated": False,

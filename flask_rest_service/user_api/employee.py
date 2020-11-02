@@ -44,6 +44,14 @@ _employeeRoles_parser.add_argument('clientManagement',
                                 type=bool,
                                 required=False
                             )
+_employeeRoles_parser.add_argument('collaborator',
+                                type=bool,
+                                required=False
+                            )
+_employeeRoles_parser.add_argument('reviewer',
+                                type=bool,
+                                required=False
+                            )
 _employeeRoles_parser.add_argument('notification_title',
                                 type=str,
                                 required=False
@@ -165,7 +173,9 @@ class EmployeeDetails(Resource):
                 mongo.db.users.update_one({'_id': ObjectId(id)}, {
                         '$set': {
                         'serviceManagement': rolesData['serviceManagement'],
-                        'clientManagement': rolesData['clientManagement']
+                        'clientManagement': rolesData['clientManagement'],
+                        'collaborator': rolesData['collaborator'],
+                        'reviewer': rolesData['reviewer']
                     }
                 })
                 # insert new notification details in notification collection

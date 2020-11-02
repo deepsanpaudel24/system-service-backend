@@ -23,6 +23,7 @@ app.config['MONGO_URI'] = MONGO_URL
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['UPLOAD_FOLDER'] = "flask_rest_service/static/allFiles"
 mongo = PyMongo(app)
 
 api = Api(app)
@@ -165,12 +166,13 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList, EmployeeDetails,
                                             ClientRegister, UserClientList, PeopleRegister, PeopleDetails, EmployeeSetupPassword,
                                             ClientSetupPassword, SendEmailConfirmation, SendEmployeeEmailInvitation, ClientEmailConfrimation,
-                                            PeopleInvitationEmail
+                                            PeopleInvitationEmail, UpdateUserIntro
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
-                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP
+                                                    CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP,
+                                                    EmployeeCaseAssignment, EmployeeCases
                                                 )
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
@@ -183,8 +185,7 @@ from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails
 
 from flask_rest_service.form_generation import IntakeForm
 
-from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, TestGoogleApi, Revoke, ClearCredentials, MakeDocs, MakeSlides,
-                         MakeSpreadsheets, MakeFileInsideFolder, GoogleCredentialsDetails )
+from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
 
 
@@ -203,6 +204,7 @@ api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
 api.add_resource(UpdateUserProfileBasic, '/api/v1/user/update/profile/basic')
 api.add_resource(UpdateUserProfileDetailed, '/api/v1/user/update/profile/detailed')
 api.add_resource(UpdateUserProfileBilling, '/api/v1/user/update/profile/billing')
+api.add_resource(UpdateUserIntro, '/api/v1/user/update/intro')
 
 # Employee related APIs
 api.add_resource(EmployeeRegister, '/api/v1/user/employee/register')
@@ -224,6 +226,8 @@ api.add_resource(ReplyCaseRequest, '/api/v1/case-request/reply/<caseId>')
 api.add_resource(CaseProposals, '/api/v1/case/proposals/<caseId>')
 api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
 api.add_resource(ProposalDetailsForSP, '/api/v1/propsal-sp/<caseId>')
+api.add_resource(EmployeeCaseAssignment, '/api/v1/case-assign/<caseId>')
+api.add_resource(EmployeeCases, '/api/v1/cases-emp')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -253,12 +257,9 @@ api.add_resource(IntakeForm, '/api/v1/intake-form')
 api.add_resource(GoogleCredentialsDetails, '/api/v1/google-credentials-details')
 api.add_resource(Authorize, '/api/v1/authorize')
 api.add_resource(OAuth2CallBack, '/api/v1/oauth2callback')
-api.add_resource(TestGoogleApi, '/api/v1/test')
+api.add_resource(GoogleDriveCreateFile, '/api/v1/google-create-file')
+api.add_resource(GoogleDriveFetchFiles, '/api/v1/google-fetch-files/<folder_name>')
 api.add_resource(Revoke, '/api/v1/revoke')
 api.add_resource(ClearCredentials, '/api/v1/clear')
-api.add_resource(MakeDocs, '/api/v1/mk-docs')
-api.add_resource(MakeSlides, '/api/v1/mk-slides')
-api.add_resource(MakeSpreadsheets, '/api/v1/mk-sheets')
-api.add_resource(MakeFileInsideFolder, '/api/v1/mk-fif')
 
 

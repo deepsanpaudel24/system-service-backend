@@ -61,6 +61,20 @@ class ServiceProviderCases(Resource):
             "message": "You are not authorized to view cases"
         }, 403
 
+class EmployeeCases(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCAe" or user.get('user_type') == "CCAe":
+            cases = []
+            for case in mongo.db.cases.find({"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } }).sort("_id", -1):
+                cases.append(case)
+            return json.loads(json.dumps(cases, default=json_util.default))
+        return {
+            "message": "You are not authorized to view cases"
+        }, 403
+
 class ServiceProviderCasesActive(Resource):
     @jwt_required
     def get(self):
