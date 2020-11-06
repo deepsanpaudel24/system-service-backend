@@ -5,8 +5,11 @@ from flask_rest_service import app, api, mongo, mail
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import jwt_required, get_jwt_claims, get_jwt_identity
 from bson.objectid import ObjectId
+import json
+from bson import json_util
 import werkzeug
 from werkzeug.utils import secure_filename
+import uuid
 
 _parse = reqparse.RequestParser()
 
@@ -118,6 +121,15 @@ class Profile(Resource):
             "user_type": claims['user_type']
         }
 
+class ProfileDetails(Resource):
+    @jwt_required
+    def get(self):
+       current_user = get_jwt_identity()
+       user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+       if user:
+            profile_details = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+            return json.loads(json.dumps(profile_details, default=json_util.default))
+
 class UpdateUserType(Resource):
     @jwt_required
     def put(self):
@@ -166,6 +178,8 @@ class UpdateUserIntro(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
+            extension = filename.split('.')[-1]
+            filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))

@@ -1,1 +1,1 @@
-from flask_rest_service.form_generation.intake_form import IntakeForm
+from flask_rest_service.form_generation.intake_form import IntakeForm, IntakeFormList, IntakeFormDetails

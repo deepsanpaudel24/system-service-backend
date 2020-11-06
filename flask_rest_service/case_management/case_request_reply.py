@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 import werkzeug
 from werkzeug.utils import secure_filename
+import uuid
 
 _parse = reqparse.RequestParser()
 
@@ -70,6 +71,8 @@ class ReplyCaseRequest(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
+            extension = filename.split('.')[-1]
+            filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -153,7 +156,7 @@ class PropsalDetails(Resource):
                     '$set': {
                         'serviceProvider': ObjectId(proposal.get('serviceProvider')),
                         'serviceProvidername': proposal.get('serviceProvidername'),
-                        'status': "On-progress",
+                        'status': "Contract-Waiting",
                         'rateType': proposal.get('rateType'),
                         'rate': proposal.get('rate')
                     }
@@ -167,7 +170,11 @@ class ProposalDetailsForSP(Resource):
     @jwt_required
     def get(self, caseId):
         current_user = get_jwt_identity()
-        proposal = mongo.db.proposals.find_one({'caseId': ObjectId(caseId), 'serviceProvider': ObjectId(current_user)})
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCAe":
+            proposal = mongo.db.proposals.find_one({'caseId': ObjectId(caseId), 'serviceProvider': ObjectId(user.get('owner'))})
+        else:
+            proposal = mongo.db.proposals.find_one({'caseId': ObjectId(caseId), 'serviceProvider': ObjectId(current_user)})
         if proposal:
             return json.loads(json.dumps(proposal, default=json_util.default))
         return {"message" : "No proposal details"}, 404

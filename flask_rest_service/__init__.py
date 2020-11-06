@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, redirect
 from flask_cors import CORS
 from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -14,6 +14,7 @@ from flask_jwt_extended import (
 from bson.objectid import ObjectId
 from flask_rest_service.blacklist import BLACKLIST
 import datetime
+import uuid
 
 MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
@@ -24,6 +25,8 @@ app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['UPLOAD_FOLDER'] = "flask_rest_service/static/allFiles"
+app.config['JWT_COOKIE_CSRF_PROTECT'] = False
+app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 mongo = PyMongo(app)
 
 api = Api(app)
@@ -65,6 +68,40 @@ def revoked_token_callback():
         'error': 'token_revoked'
     }), 401
 
+@app.route("/api/v1/user/login", methods=["POST"])
+def login():
+    email = request.json.get('email', None)
+    password = request.json.get('password', None)
+    user = mongo.db.users.find_one({'email': email})
+    if user and check_password_hash(user.get("password"), password):
+        if user.get("is_verified"):
+            expires = datetime.timedelta(days=1)
+            access_token = create_access_token(identity=str(user['_id']), fresh=True, expires_delta=expires)
+            refresh_token = create_refresh_token(str(user['_id']))
+            # Set the JWT cookies in the response
+            resp = jsonify({
+                'login': True,
+                'user_type': user.get("user_type"),
+                'profile_basic_completion':user.get("profile_basic_completion"),
+                'profile_detailed_completion':user.get("profile_detailed_completion"),
+                'profile_billing_completion':user.get("profile_billing_completion")
+            })
+            set_access_cookies(resp, access_token)
+            set_refresh_cookies(resp, refresh_token)
+            if user:
+                mongo.db.users.update_one({'email': email}, {
+                        '$set': {
+                        'logout': False 
+                    }
+                })
+            return resp, 200
+        return {
+                'message': 'You need to verify your account!'
+            }, 401
+    return {
+            'message': 'Invalid Credentials'
+        }, 401
+
 @app.route("/api/v1/user/logout", methods=["POST"])
 @jwt_required
 def LogoutUser():
@@ -79,6 +116,7 @@ def LogoutUser():
     jti = get_raw_jwt()['jti']
     BLACKLIST.add(jti)
     resp = jsonify({'logout': True})
+    unset_jwt_cookies(resp)
     return resp, 200
 
 @app.route("/api/v1/user/change-password", methods=["PUT"])
@@ -99,6 +137,7 @@ def ChangePassword():
             jti = get_raw_jwt()['jti']
             BLACKLIST.add(jti)
             resp = jsonify({'logout': True})
+            unset_jwt_cookies(resp)
             return {"message": "Password updated sucessfully. Please login again."}, 200
         return {"message": "Current password does not match"}, 401
     return {"message": "User does not exist"}, 404
@@ -106,6 +145,7 @@ def ChangePassword():
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
 @app.route("/api/v1/user/employee/setup-password/<token>", methods=["PUT"])
+@jwt_required
 def EmployeeSetupPassword(token):
     try:
         data = request.json.get('password', None)
@@ -120,6 +160,10 @@ def EmployeeSetupPassword(token):
                             'is_verified': True
                         }
                     })
+                jti = get_raw_jwt()['jti']
+                BLACKLIST.add(jti)
+                resp = jsonify({'logout': True})
+                unset_jwt_cookies(resp)
                 return {
                         "message": "Password Updated successfully",
                     }, 200
@@ -149,14 +193,13 @@ def UpdateUserType():
         })
         expires = datetime.timedelta(days=1)
         access_token = create_access_token(identity=current_user, fresh=True, expires_delta=expires)
-        refresh_token = create_refresh_token(str(user['_id']))
-        resp ={
-                'isAuthenticated': True,
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }
-        return resp, 200
+        resp = jsonify({
+                'isAuthenticated': True
+            })
+        set_access_cookies(resp, access_token)
+        return {"message": "User type updated successfully"}, 200
     return {"message": "User does not exist."}, 404
+        
 
 
 
@@ -166,13 +209,14 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             EmployeeRegister, UserEmployeeList, SerivceProvidersList, ClientsList, EmployeeDetails,
                                             ClientRegister, UserClientList, PeopleRegister, PeopleDetails, EmployeeSetupPassword,
                                             ClientSetupPassword, SendEmailConfirmation, SendEmployeeEmailInvitation, ClientEmailConfrimation,
-                                            PeopleInvitationEmail, UpdateUserIntro
+                                            PeopleInvitationEmail, UpdateUserIntro, ProfileDetails, SendClientsIntakeForm, ClientDetails, 
+                                            ShowFillUpFormForClient, InsertClientIntakeFormValues
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
                                                     CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP,
-                                                    EmployeeCaseAssignment, EmployeeCases
+                                                    EmployeeCaseAssignment, EmployeeCases, UploadContractPaper, ContractDetails, ConfirmContractPaper
                                                 )
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
@@ -183,13 +227,13 @@ from flask_rest_service.timers import AddTimer, TotalSpentTime
 
 from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails
 
-from flask_rest_service.form_generation import IntakeForm
+from flask_rest_service.form_generation import IntakeForm, IntakeFormList, IntakeFormDetails
 
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
 
 
-api.add_resource(UserLogin, '/api/v1/user/login')
+#api.add_resource(UserLogin, '/api/v1/user/login')
 api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(SendEmailConfirmation, '/api/v1/user/send-email-confirmation')
@@ -198,6 +242,7 @@ api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
 api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserEmployeeList, '/api/v1/user/employee/list')
 api.add_resource(Profile, '/user/profile')
+api.add_resource(ProfileDetails, '/api/v1/user/profile-details')
 
 # User profile type setup 
 api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
@@ -228,6 +273,9 @@ api.add_resource(PropsalDetails, '/api/v1/proposal/<proposalId>')
 api.add_resource(ProposalDetailsForSP, '/api/v1/propsal-sp/<caseId>')
 api.add_resource(EmployeeCaseAssignment, '/api/v1/case-assign/<caseId>')
 api.add_resource(EmployeeCases, '/api/v1/cases-emp')
+api.add_resource(UploadContractPaper, '/api/v1/case-contract/<caseId>')
+api.add_resource(ContractDetails, '/api/v1/contract/<caseId>')
+api.add_resource(ConfirmContractPaper, '/api/v1/contract-confirm/<caseId>')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -238,6 +286,7 @@ api.add_resource(ClientRegister, '/api/v1/client/register')
 api.add_resource(ClientEmailConfrimation, '/api/v1/client/send-email-confirmation')
 api.add_resource(ClientSetupPassword, '/api/v1/user/client/setup-password/<token>')
 api.add_resource(UserClientList, '/api/v1/clients')
+api.add_resource(ClientDetails, '/api/v1/client-details/<clientId>')
 
 # Api naming considered for the sencond time from here
 api.add_resource(PeopleRegister, '/api/v1/peoples')
@@ -253,6 +302,11 @@ api.add_resource(AddCustomTask, '/api/v1/tasks')
 api.add_resource(CustomTasksDetails, '/api/v1/tasks/<id>')
 
 api.add_resource(IntakeForm, '/api/v1/intake-form')
+api.add_resource(IntakeFormList, '/api/v1/intake-form/list')
+api.add_resource(IntakeFormDetails, '/api/v1/intake/form/<id>')
+api.add_resource(SendClientsIntakeForm, '/api/v1/send-intake-form/<clientId>')
+api.add_resource(ShowFillUpFormForClient, '/api/v1/client-fill-form')
+api.add_resource(InsertClientIntakeFormValues, '/api/v1/intake-form/filled/<formId>')
 
 api.add_resource(GoogleCredentialsDetails, '/api/v1/google-credentials-details')
 api.add_resource(Authorize, '/api/v1/authorize')

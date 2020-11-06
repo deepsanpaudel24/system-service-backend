@@ -120,3 +120,61 @@ class UserClientList(Resource):
         for client in mongo.db.users.find({'invited_by': ObjectId(current_user)}).sort("_id", -1):
             clients.append(client)
         return json.loads(json.dumps(clients, default=json_util.default))
+
+
+class ClientDetails(Resource):
+    @jwt_required
+    def get(self, clientId):
+        current_user = get_jwt_identity()
+        client_details = mongo.db.users.find_one({'_id': ObjectId(clientId)})
+        return json.loads(json.dumps(client_details, default=json_util.default))
+    
+
+class SendClientsIntakeForm(Resource):
+    @jwt_required
+    def put(self, clientId):
+        current_user = get_jwt_identity()
+        data = request.get_json()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user:
+            mongo.db.users.update_one({'_id': ObjectId(clientId)}, {
+                    '$set': {
+                    'intake_form': data['form_id'],
+                    
+                }
+            })
+          
+            return {"message": "Form sent successfully!"}, 200
+        return {
+            "message": "User does not exist"
+        }, 400
+
+
+class ShowFillUpFormForClient(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if 'intake_form' in user:
+            form_id = user['intake_form']
+            form = mongo.db.intake_forms.find_one({'_id': ObjectId(form_id)})
+            return json.loads(json.dumps(form, default=json_util.default))
+        return jsonify('No form has been assigned..'), 404
+
+class InsertClientIntakeFormValues(Resource):
+    @jwt_required
+    def post(self, formId):
+        data = request.get_json()
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user:
+            id = mongo.db.intake_form_values.insert({
+                'formId': ObjectId(formId),
+                'formValues':data['formValues'],
+                'filledBy': ObjectId(current_user),
+                'filledDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection intake_form_values                                                                                              
+            return {"message": "Form filled successfully! "}, 201
+        return {
+            "message": "User does not exist"
+        }, 403

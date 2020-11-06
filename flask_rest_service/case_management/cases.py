@@ -118,7 +118,7 @@ class ServiceProviderCasesDetails(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS":
+        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
             case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
             return json.loads(json.dumps(case_details, default=json_util.default))
         return {"message" : "You are not authorized to view this page"}, 403

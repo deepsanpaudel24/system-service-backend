@@ -9,6 +9,7 @@ from werkzeug.utils import secure_filename
 from bson import json_util
 from datetime import datetime
 import os
+import uuid
 
 _parse = reqparse.RequestParser()
 
@@ -54,6 +55,8 @@ class AddNewCaseRequest(Resource):
         # filename = secure_filename(files.filename)
         # files.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
+        #filename example : roshan.png, renamed as roshan-key.png
+
         myFiles = request.files
         for key in myFiles:
             _parse.add_argument(
@@ -63,6 +66,8 @@ class AddNewCaseRequest(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
+            extension = filename.split('.')[-1]
+            filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
