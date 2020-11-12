@@ -14,11 +14,30 @@ from werkzeug.utils import secure_filename
 import uuid
 from flask_restful import Resource
 from datetime import datetime
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.backends import default_backend
+import bson
+from bson.codec_options import CodecOptions
+
+
+
 
 # Initalize socketio
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # decorators to check if the connected user are authorized
+
+
+def get_encrypt_decrypt_key():
+    password_provided = app.secret_key
+    password = password_provided.encode()
+    salt = b'd\x06//\x8b\xb5\x8b\x1dIQ\xfb\x17N\xb3-\xfa'
+    kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32,
+                     salt=salt, iterations=100000, backend=default_backend())
+    key = base64.urlsafe_b64encode(kdf.derive(password))
+    return key
 
 
 def chat_head(func):
@@ -65,9 +84,14 @@ def handel_leave(data):
 @socketio.on('send_message')
 @chat_head
 def handel_send_message(data):
+    #encrypting message sent by user
+    key = get_encrypt_decrypt_key()
+    msg_encoded =data['message'].encode()
+    f = Fernet(key)
+    message = f.encrypt(msg_encoded)
+    
     userId = ObjectId(data['userId'])
     username = data['username']
-    message = data['message']
     room = data['room']
     time = strftime('%b-%d %I:%M%p', localtime())
 
@@ -77,8 +101,19 @@ def handel_send_message(data):
     # getting latest messages and sending to client
     query_obj = {"room": data['room']}
     all_messages = mongo.db.messages.find(query_obj).sort("_id", -1).limit(5)
+    #all_messages = bson.BSON(all_messages).decode()
+    # decrypt all the messages and then send it to data['all_messages]
+    all_messages = json.loads(dumps(all_messages))
+    decoded_all_messages = []
+    for single_messages in all_messages:
+        s_message = single_messages.get('message')
+        # print("type of s_message is", type(s_message['$binary']))
+        decrypted_data = f.decrypt(b"f'{s_message['$binary']}'")
+        single_messages['message'] = decrypted_data.decode()
+        decoded_all_messages.append(single_messages)
+
     data['timestamp'] = time
-    data['all_messages'] = json.loads(dumps(all_messages))[::-1]
+    data['all_messages'] = decoded_all_messages[::-1]
     socketio.emit("receive_message", data, room=data['room'])
 
 # Event to handel files uploaded
