@@ -71,7 +71,7 @@ class ReplyCaseRequest(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
-            extension = filename.split('.')[-1]
+            filename, extension = filename.split('.')
             filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")

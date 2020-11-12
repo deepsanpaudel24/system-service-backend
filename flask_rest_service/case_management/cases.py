@@ -95,6 +95,8 @@ class ClientCasesDetails(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SA" or user.get('user_type') == "CCA" or user.get('user_type') == "CS":
             case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+            case_details['logged_in_user_name'] = user.get('name')
+            case_details['logged_in_user_id'] = user.get('_id')
             result  = mongo.db.users.find(
                 { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
                 )
@@ -120,6 +122,8 @@ class ServiceProviderCasesDetails(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
             case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+            case_details['logged_in_user_name'] = user.get('name')
+            case_details['logged_in_user_id'] = user.get('_id')
             return json.loads(json.dumps(case_details, default=json_util.default))
         return {"message" : "You are not authorized to view this page"}, 403
 
@@ -142,4 +146,6 @@ class ForwardCaseRequest(Resource):
         return {
             "user_type": str(user.get('user_type'))
         }, 403
+
+
             

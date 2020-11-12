@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, make_response, redirect
+from flask import Flask, request, jsonify, make_response, redirect, abort, send_from_directory
 from flask_cors import CORS
 from flask_restful import Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
@@ -15,11 +15,14 @@ from bson.objectid import ObjectId
 from flask_rest_service.blacklist import BLACKLIST
 import datetime
 import uuid
+# For webscoket 
+from flask_socketio import SocketIO, send
 
 MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
 cors = CORS(app)
 app.secret_key = "service-system"
+socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['MONGO_URI'] = MONGO_URL
 app.config['JWT_BLACKLIST_ENABLED'] = True
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
@@ -43,6 +46,10 @@ app.config.update(mail_settings)
 mail = Mail(app)
 
 jwt = JWTManager(app)
+
+@socketio.on('my_event')
+def handle_my_custom_event(json):
+    print('received json: ' + str(json))
 
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
@@ -201,6 +208,30 @@ def UpdateUserType():
     return {"message": "User does not exist."}, 404
         
 
+@app.route("/static/allFiles/<filename>", methods=["GET", "POST"])
+@jwt_required
+def SecureStaticAssest(filename):
+    data= request.get_json()
+    caseId = data['caseId']
+    case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
+    current_user = get_jwt_identity()
+    listOfUserId = []
+    listOfUserId.append(case_details.get('serviceProvider'))
+    listOfUserId.append(case_details.get('client'))
+    print(current_user, 'this is curret users')
+    if case_details.get('assigned_employee_list'):
+        listOfUserId.extend(case_details.get('assigned_employee_list'))
+
+    if case_details.get('status') != 'On-progress':
+        listOfUserId.extend(case_details.get('forwardTo'))
+    
+    if ObjectId(current_user) in listOfUserId:
+            BASE_DIR = os.path.dirname(__file__)
+            assest_folder = os.path.join(BASE_DIR, 'static/allFiles')
+            return send_from_directory(assest_folder, filename, as_attachment=True), 200
+    else:
+        abort(403)
+
 
 
 from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmation, 
@@ -210,13 +241,15 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             ClientRegister, UserClientList, PeopleRegister, PeopleDetails, EmployeeSetupPassword,
                                             ClientSetupPassword, SendEmailConfirmation, SendEmployeeEmailInvitation, ClientEmailConfrimation,
                                             PeopleInvitationEmail, UpdateUserIntro, ProfileDetails, SendClientsIntakeForm, ClientDetails, 
-                                            ShowFillUpFormForClient, InsertClientIntakeFormValues
+                                            ShowFillUpFormForClient, InsertClientIntakeFormValues, ClientIntakeFormFilledDetails, 
+                                            ProfileSettingUpdate, ProfileIntroductionUpdate
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
                                                     CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP,
-                                                    EmployeeCaseAssignment, EmployeeCases, UploadContractPaper, ContractDetails, ConfirmContractPaper
+                                                    EmployeeCaseAssignment, EmployeeCases, UploadContractPaper, ContractDetails, ConfirmContractPaper,
+                                                    UpdateRelatedDocuments, DeleteRelatedDocuments
                                                 )
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
@@ -231,6 +264,8 @@ from flask_rest_service.form_generation import IntakeForm, IntakeFormList, Intak
 
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
+from flask_rest_service.communication import socketio, InitialChatMessage
+
 
 
 #api.add_resource(UserLogin, '/api/v1/user/login')
@@ -243,6 +278,8 @@ api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserEmployeeList, '/api/v1/user/employee/list')
 api.add_resource(Profile, '/user/profile')
 api.add_resource(ProfileDetails, '/api/v1/user/profile-details')
+api.add_resource(ProfileSettingUpdate, '/api/v1/user/profile-setting')
+api.add_resource(ProfileIntroductionUpdate, '/api/v1/user/profile-introduction')
 
 # User profile type setup 
 api.add_resource(UpdateUserType, '/api/v1/user/flask-restful/update/user_type')
@@ -276,6 +313,8 @@ api.add_resource(EmployeeCases, '/api/v1/cases-emp')
 api.add_resource(UploadContractPaper, '/api/v1/case-contract/<caseId>')
 api.add_resource(ContractDetails, '/api/v1/contract/<caseId>')
 api.add_resource(ConfirmContractPaper, '/api/v1/contract-confirm/<caseId>')
+api.add_resource(UpdateRelatedDocuments, '/api/v1/case/documents/<id>')
+api.add_resource(DeleteRelatedDocuments, '/api/v1/case/docs-remove/<id>')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -307,6 +346,7 @@ api.add_resource(IntakeFormDetails, '/api/v1/intake/form/<id>')
 api.add_resource(SendClientsIntakeForm, '/api/v1/send-intake-form/<clientId>')
 api.add_resource(ShowFillUpFormForClient, '/api/v1/client-fill-form')
 api.add_resource(InsertClientIntakeFormValues, '/api/v1/intake-form/filled/<formId>')
+api.add_resource(ClientIntakeFormFilledDetails, '/api/v1/intake-form/filled-details/<clientId>')
 
 api.add_resource(GoogleCredentialsDetails, '/api/v1/google-credentials-details')
 api.add_resource(Authorize, '/api/v1/authorize')
@@ -315,5 +355,7 @@ api.add_resource(GoogleDriveCreateFile, '/api/v1/google-create-file')
 api.add_resource(GoogleDriveFetchFiles, '/api/v1/google-fetch-files/<folder_name>')
 api.add_resource(Revoke, '/api/v1/revoke')
 api.add_resource(ClearCredentials, '/api/v1/clear')
+
+api.add_resource(InitialChatMessage, '/api/v1/chat-initial-message/<room>')
 
 

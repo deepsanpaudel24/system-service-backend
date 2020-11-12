@@ -136,11 +136,11 @@ class SendClientsIntakeForm(Resource):
         current_user = get_jwt_identity()
         data = request.get_json()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        assigned_form_list = list(map(lambda x: ObjectId(x), data['forms_id']))
         if user:
             mongo.db.users.update_one({'_id': ObjectId(clientId)}, {
                     '$set': {
-                    'intake_form': data['form_id'],
-                    
+                    'intake_forms': assigned_form_list,        
                 }
             })
           
@@ -155,11 +155,14 @@ class ShowFillUpFormForClient(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if 'intake_form' in user:
-            form_id = user['intake_form']
-            form = mongo.db.intake_forms.find_one({'_id': ObjectId(form_id)})
+        if 'intake_forms' in user:
+            last_form = user['intake_forms'][-1]
+            result = mongo.db.intake_form_values.find_one({'formId': ObjectId(last_form)})
+            if result:
+                return { "message": "Form already filled"}
+            form = mongo.db.intake_forms.find_one({'_id': ObjectId(last_form)})
             return json.loads(json.dumps(form, default=json_util.default))
-        return jsonify('No form has been assigned..'), 404
+        return {"message" : "No form has been assigned.."}, 404
 
 class InsertClientIntakeFormValues(Resource):
     @jwt_required
@@ -178,3 +181,27 @@ class InsertClientIntakeFormValues(Resource):
         return {
             "message": "User does not exist"
         }, 403
+
+class ClientIntakeFormFilledDetails(Resource):
+    @jwt_required
+    def get(self, clientId):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        client = mongo.db.users.find_one({'_id': ObjectId(clientId)})
+        # Step 1: Find which Intake form current user sent to this client
+        if 'intake_forms' in client:
+            form_list = list(map(lambda x: str(x), client['intake_forms']))
+            #form_list = client['intake_forms']
+            # Check if the client has filled the form with that id
+            form_filled = []
+            for form_id in form_list:
+                result = mongo.db.intake_form_values.find_one({'formId': ObjectId(form_id)})
+                form_details = mongo.db.intake_forms.find_one({'_id': ObjectId(form_id)})
+                if result:
+                    result['form_title'] = form_details.get('title')
+                    form_filled.append(result)
+            if form_filled:
+                return json.loads(json.dumps(form_filled, default=json_util.default))
+            else:
+                return { "message": "Client has not filled the form"}
+        return{"message": "No intake form has been sent to the client"}

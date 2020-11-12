@@ -49,13 +49,11 @@ class AddNewCaseRequest(Resource):
         current_user = get_jwt_identity()
         data = _newCaseRequest_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+            userType = "c"
+        else:
+            userType = "sp"
         caseTags = data['caseTags'].split(',')
-
-        # files = data['sentFiles']
-        # filename = secure_filename(files.filename)
-        # files.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-
-        #filename example : roshan.png, renamed as roshan-key.png
 
         myFiles = request.files
         for key in myFiles:
@@ -66,8 +64,8 @@ class AddNewCaseRequest(Resource):
         for key in myFiles:
             file = args[key]
             filename = secure_filename(file.filename)
-            extension = filename.split('.')[-1]
-            filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
+            filename, extension = filename.split('.')
+            filename = f"{filename}-{uuid.uuid4().hex}.{userType}.{extension}"
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
@@ -94,3 +92,53 @@ class AddNewCaseRequest(Resource):
             'createdDate': datetime.today().strftime('%Y-%m-%d')
         })                                                                                 
         return {"message": "Case requested successfully! "}, 201
+
+
+class UpdateRelatedDocuments(Resource):
+    @jwt_required
+    def put(self, id):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+            userType = "c"
+        else:
+            userType = "sp"
+        myFiles = request.files
+        for key in myFiles:
+            _parse.add_argument(
+                key, type=werkzeug.datastructures.FileStorage, location='files')
+        args = _parse.parse_args()
+        filesLocationList = []
+        for key in myFiles:
+            file = args[key]
+            filename = secure_filename(file.filename)
+            filename, extension = filename.split('.')
+            filename = f"{filename}-{uuid.uuid4().hex}.{userType}.{extension}"
+            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
+            filesLocationList.append(f"{dirToSaveFile}/{filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+        allFilesLocationList = case_details.get('files') + filesLocationList
+        mongo.db.cases.update_one({'_id': ObjectId(id)}, {
+            '$set': {
+                'files': allFilesLocationList
+            }
+        })
+        return {"message": "Case updated successfully"}, 200
+
+class DeleteRelatedDocuments(Resource):
+    @jwt_required
+    def put(self, id):
+        current_user = get_jwt_identity()
+        data = request.get_json()
+        case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+        allFilesLocationList = data['file']
+        filesFromDb = case_details.get('files')
+        filesFromDb.remove(allFilesLocationList)
+        mongo.db.cases.update_one({'_id': ObjectId(id)}, {
+            '$set': {
+                'files': filesFromDb
+            }
+        })
+        return {"message": "Case updated successfully"}, 200
