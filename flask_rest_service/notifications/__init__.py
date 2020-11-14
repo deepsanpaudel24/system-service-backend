@@ -1,1 +1,1 @@
-from flask_rest_service.notifications.notifications import Notifcations
+from flask_rest_service.notifications.notifications import Notifications, InsertNotifications, ChangeNotificationStatus

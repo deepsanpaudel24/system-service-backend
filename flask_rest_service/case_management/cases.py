@@ -6,6 +6,7 @@ from bson.objectid import ObjectId
 from bson.json_util import dumps
 import json
 from bson import json_util
+from flask_rest_service.notifications import InsertNotifications
 
 _forwardTo_parser = reqparse.RequestParser()
 
@@ -51,10 +52,17 @@ class ServiceProviderCases(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
             cases = []
-            for case in mongo.db.cases.find({"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } }).sort("_id", -1):
-                # proposal = mongo.db.proposals.find_one({'caseId': case.get('_id'), 'serviceProvider': ObjectId(current_user)})
-                # # If proposal exists, then send proposal status in response.
-                # case['proposalStatus'] = proposal.get('status')
+            
+            # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
+            # Condition 2: serviceProvider has current_user
+
+            # condition to check if the user is listed in the forwardTo
+            condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } }
+            # condition to check if the case that has the current user listed in the forwardTo has not been to progress
+            # This is because the cases that are in progress cannot be seen by other service providers
+            condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+
+            for case in mongo.db.cases.find({"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(current_user)}]}).sort("_id", -1):
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {
@@ -111,6 +119,7 @@ class ClientCasesDetails(Resource):
                 "matchingServiceProviders": result,
                 "forwardedSP_list": forwardedSP_list
             }
+
             return json.loads(dumps(response))
         return {"message" : "You are not authorized to view this page"}, 403
 
@@ -142,6 +151,16 @@ class ForwardCaseRequest(Resource):
                     'status': "Forwarded"
                 }
             })
+            # Send notifiations to the service providers with the message saying they received the case from super admin. 
+            for serviceProvider in serviceProviders:
+                notification_values = {
+                    "title" : "A case forwarded by super-admin has been received",
+                    "sender": ObjectId(current_user),
+                    "receiver": serviceProvider,
+                    "link": f"/user/case/{id}"
+                } 
+                InsertNotifications(**notification_values)
+
             return {"message": "Case forwarded to all the service providers"}, 200
         return {
             "user_type": str(user.get('user_type'))

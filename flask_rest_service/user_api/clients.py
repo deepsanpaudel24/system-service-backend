@@ -11,6 +11,10 @@ from bson.objectid import ObjectId
 import json
 from bson import json_util
 from datetime import datetime
+import uuid
+import werkzeug
+from werkzeug.utils import secure_filename
+from flask_rest_service.notifications import InsertNotifications
 
 
 _client_parser =  reqparse.RequestParser()
@@ -33,6 +37,36 @@ _client_setup_password_parser.add_argument('confirm-password',
                                             required=True,
                                             help="This field cannot be blank"
                                             )
+
+_parse = reqparse.RequestParser()
+
+_newCaseRequest_parser =  reqparse.RequestParser()
+
+_newCaseRequest_parser.add_argument('title',
+                        type=str,
+                        required=True,
+                        help="This field cannot be blank."
+                    )
+_newCaseRequest_parser.add_argument('desc',
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
+                    )
+_newCaseRequest_parser.add_argument('rate',
+                        type=str,
+                        required=False,
+                        help="This field is blank."
+                    )
+_newCaseRequest_parser.add_argument('rateType',
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
+                    )
+_newCaseRequest_parser.add_argument('caseTags',
+                        type=str,
+                        required=False,
+                        help="This field cannot be blank."
+                    )
 
 
 
@@ -142,7 +176,7 @@ class SendClientsIntakeForm(Resource):
                     '$set': {
                     'intake_forms': assigned_form_list,        
                 }
-            })
+            })      
           
             return {"message": "Form sent successfully!"}, 200
         return {
@@ -170,13 +204,22 @@ class InsertClientIntakeFormValues(Resource):
         data = request.get_json()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        form_details = mongo.db.intake_forms.find_one({'_id': ObjectId(formId)})
         if user:
             id = mongo.db.intake_form_values.insert({
                 'formId': ObjectId(formId),
                 'formValues':data['formValues'],
                 'filledBy': ObjectId(current_user),
                 'filledDate': datetime.today().strftime('%Y-%m-%d')
-            })                           # insert the data in the collection intake_form_values                                                                                              
+            })                           # insert the data in the collection intake_form_values      
+            # Send notifiations to the service provider saying they received the filled up client intake form. 
+            notification_values = {
+                "title" : f"{user.get('name')} has filled up the form you requested",
+                "sender": ObjectId(current_user),
+                "receiver": form_details.get('createdBy'),
+                "link": f"/user/client/{current_user}"
+            } 
+            InsertNotifications(**notification_values)                                                                                          
             return {"message": "Form filled successfully! "}, 201
         return {
             "message": "User does not exist"
@@ -205,3 +248,77 @@ class ClientIntakeFormFilledDetails(Resource):
             else:
                 return { "message": "Client has not filled the form"}
         return{"message": "No intake form has been sent to the client"}
+
+
+# For the list of the cases that services provider gets to see 
+# In the client details page, in service provider dashboard 
+# Client Management module
+class SPClientCases(Resource):
+    @jwt_required
+    def get(self, clientId):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
+            cases = []
+            for case in mongo.db.cases.find({"$and": [{"client": ObjectId(clientId)}, {"serviceProvider": ObjectId(current_user)}]}).sort("_id", -1):
+                cases.append(case)
+            return json.loads(json.dumps(cases, default=json_util.default))
+        return {
+            "message": "You are not authorized to view cases for this client"
+        }, 403 
+
+# To create the case manually for the client by the service provider
+# Client and Case Management Module
+class CreateClientCase(Resource):
+    @jwt_required
+    def post(self, clientId):
+        current_user = get_jwt_identity()
+        data = _newCaseRequest_parser.parse_args()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        client = mongo.db.users.find_one({'_id': ObjectId(clientId)})
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+            userType = "c"
+        else:
+            userType = "sp"
+        caseTags = data['caseTags'].split(',')
+
+        myFiles = request.files
+        for key in myFiles:
+            _parse.add_argument(
+                key, type=werkzeug.datastructures.FileStorage, location='files')
+        args = _parse.parse_args()
+        filesLocationList = []
+        for key in myFiles:
+            file = args[key]
+            filename = secure_filename(file.filename)
+            filename, extension = filename.split('.')
+            filename = f"{filename}-{uuid.uuid4().hex}.{userType}.{extension}"
+            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
+            filesLocationList.append(f"{dirToSaveFile}/{filename}")
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        id = mongo.db.cases.insert({
+            'title': data['title'],
+            'desc': data['desc'],
+            'rateType': data['rateType'],
+            'rate': data['rate'],
+            'caseTags': caseTags,
+            'status': "Contract-Waiting",
+            'serviceProvider': ObjectId(current_user),
+            'serviceProvidername': user.get('name'),
+            'client': ObjectId(clientId),
+            'clientName': client.get('name'),
+            'files': filesLocationList,
+            'type': "manual",
+            'requestedDate': datetime.today().strftime('%Y-%m-%d')
+        })                           # insert the data in the collection cases    
+
+        # Send notifiations to the client saying the service provider added a case on behalf of them
+        notification_values = {
+            "title" : f"{user.get('name')} has added a case for you.",
+            "sender": ObjectId(current_user),
+            "receiver": ObjectId(clientId),
+            "link": "/user/cases"
+        } 
+        InsertNotifications(**notification_values)                                                 
+        return {"message": "Case requested successfully! "}, 201

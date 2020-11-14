@@ -223,7 +223,8 @@ def SecureStaticAssest(filename):
         listOfUserId.extend(case_details.get('assigned_employee_list'))
 
     if case_details.get('status') != 'On-progress':
-        listOfUserId.extend(case_details.get('forwardTo'))
+        if case_details.get('forwardTo'):
+            listOfUserId.extend(case_details.get('forwardTo'))
     
     if ObjectId(current_user) in listOfUserId:
             BASE_DIR = os.path.dirname(__file__)
@@ -242,7 +243,7 @@ from flask_rest_service.user_api import (   Test, UserRegister, EmailConfirmatio
                                             ClientSetupPassword, SendEmailConfirmation, SendEmployeeEmailInvitation, ClientEmailConfrimation,
                                             PeopleInvitationEmail, UpdateUserIntro, ProfileDetails, SendClientsIntakeForm, ClientDetails, 
                                             ShowFillUpFormForClient, InsertClientIntakeFormValues, ClientIntakeFormFilledDetails, 
-                                            ProfileSettingUpdate, ProfileIntroductionUpdate
+                                            ProfileSettingUpdate, ProfileIntroductionUpdate, SPClientCases, CreateClientCase
                                         )
 
 from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, ClientCases, ClientCasesDetails, ForwardCaseRequest, 
@@ -254,7 +255,7 @@ from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, Cl
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
 
-from flask_rest_service.notifications import Notifcations
+from flask_rest_service.notifications import Notifications, ChangeNotificationStatus
 
 from flask_rest_service.timers import AddTimer, TotalSpentTime
 
@@ -315,6 +316,7 @@ api.add_resource(ContractDetails, '/api/v1/contract/<caseId>')
 api.add_resource(ConfirmContractPaper, '/api/v1/contract-confirm/<caseId>')
 api.add_resource(UpdateRelatedDocuments, '/api/v1/case/documents/<id>')
 api.add_resource(DeleteRelatedDocuments, '/api/v1/case/docs-remove/<id>')
+api.add_resource(CreateClientCase, '/api/v1/sp-client/create-case/<clientId>')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -326,13 +328,15 @@ api.add_resource(ClientEmailConfrimation, '/api/v1/client/send-email-confirmatio
 api.add_resource(ClientSetupPassword, '/api/v1/user/client/setup-password/<token>')
 api.add_resource(UserClientList, '/api/v1/clients')
 api.add_resource(ClientDetails, '/api/v1/client-details/<clientId>')
+api.add_resource(SPClientCases, '/api/v1/sp-client-cases/<clientId>')
 
 # Api naming considered for the sencond time from here
 api.add_resource(PeopleRegister, '/api/v1/peoples')
 api.add_resource(PeopleInvitationEmail, '/api/v1/people/send-email-confirmation')
 api.add_resource(PeopleDetails, '/api/v1/peoples/<id>')
 
-api.add_resource(Notifcations, '/api/v1/notifications')
+api.add_resource(Notifications, '/api/v1/notifications')
+api.add_resource(ChangeNotificationStatus, '/api/v1/notifications/<notificationId>')
 
 api.add_resource(AddTimer, '/api/v1/timers')
 api.add_resource(TotalSpentTime, '/api/v1/total-time/<caseId>')

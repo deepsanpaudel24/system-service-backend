@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 import werkzeug
 from werkzeug.utils import secure_filename
-
+from flask_rest_service.notifications import InsertNotifications
 
 _assignCase_parser =  reqparse.RequestParser()
 
@@ -39,6 +39,15 @@ class EmployeeCaseAssignment(Resource):
                         'assigned_employee_list': assigned_emp_list
                         }
                     })
+                # Send notifiations to the employee saying they received the case assigned by their admin. 
+                for assigned_emp in assigned_emp_list:
+                    notification_values = {
+                        "title" : f"You admin has assigned you a case.",
+                        "sender": ObjectId(current_user),
+                        "receiver": assigned_emp,
+                        "link": f"/user/case/{caseId}"
+                    } 
+                    InsertNotifications(**notification_values) 
                 return { "message": "Case assigned Sucessfully"}, 200
             return {"message": "Case does not exist"}, 404
         return { "message": "User does not exist"}, 404

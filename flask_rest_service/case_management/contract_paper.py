@@ -10,6 +10,7 @@ from bson import json_util
 from datetime import datetime
 import os
 import uuid
+from flask_rest_service.notifications import InsertNotifications
 
 _parse = reqparse.RequestParser()
 
@@ -32,6 +33,7 @@ class UploadContractPaper(Resource):
         current_user = get_jwt_identity()
         data = _UploadContractPaper_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
 
         myFiles = request.files
         for key in myFiles:
@@ -59,13 +61,22 @@ class UploadContractPaper(Resource):
             '$set': {
                 'status': "Contract-Sent"
             }
-        })                                                                                 
+        })   
+        # Send notifiations to the client saying they received the contract paper from service provider. 
+        notification_values = {
+            "title" : f"{user.get('name')} has sent a contract paper.",
+            "sender": ObjectId(current_user),
+            "receiver": case_details.get('client'),
+            "link": f"/user/case/{caseId}"
+        } 
+        InsertNotifications(**notification_values)                                                                              
         return {"message": "Contract paper uploaded successfully! "}, 201
 
 class ConfirmContractPaper(Resource):
     @jwt_required
     def put(self, caseId):
         current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         case = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
         if case:
             mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
@@ -73,6 +84,14 @@ class ConfirmContractPaper(Resource):
                     'status': "On-progress"
                 }
             })
+            # Send notifiations to the client saying they received the contract paper from service provider. 
+            notification_values = {
+                "title" : f"{user.get('name')} has confirmed a contract. The case is now on progress.",
+                "sender": ObjectId(current_user),
+                "receiver": case.get('client'),
+                "link": f"/user/case/{caseId}"
+            } 
+            InsertNotifications(**notification_values)   
             return { "message": "Contract confirmed Sucessfully"}, 200  
         return {"message": "case not found"}, 404
 
@@ -87,6 +106,7 @@ class ContractDetails(Resource):
     def put(self, caseId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
 
         myFiles = request.files
         for key in myFiles:
@@ -115,6 +135,14 @@ class ContractDetails(Resource):
                     'status': "Contract-Replied"
                 }
             })
+            # Send notifiations to the service providers with the message saying they received the signed contract paper from the client. 
+            notification_values = {
+                "title" : f"{user.get('name')} has sent a signed contract paper.",
+                "sender": ObjectId(current_user),
+                "receiver": case_details.get('serviceProvider'),
+                "link": f"/user/case/{caseId}"
+            } 
+            InsertNotifications(**notification_values)
             return {"message": "File uploaded sucessfully"}, 200
         return {
             "message": "User does not exist"

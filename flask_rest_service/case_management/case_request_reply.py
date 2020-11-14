@@ -10,6 +10,7 @@ import os
 import werkzeug
 from werkzeug.utils import secure_filename
 import uuid
+from flask_rest_service.notifications import InsertNotifications
 
 _parse = reqparse.RequestParser()
 
@@ -61,6 +62,7 @@ class ReplyCaseRequest(Resource):
         current_user = get_jwt_identity()
         data = _replyCaseRequest_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
 
         myFiles = request.files
         for key in myFiles:
@@ -94,7 +96,17 @@ class ReplyCaseRequest(Resource):
                     '$set': {
                     'status': "Proposal-Forwarded"
                 }
-            })                                                                                         
+            }) 
+
+        # Send notifiations to the service providers with the message saying they received the case from super admin. 
+        notification_values = {
+            "title" : f"{user.get('name')} has sent a proposal for your case",
+            "sender": ObjectId(current_user),
+            "receiver": case_details.get('client'),
+            "link": f"/user/case/{caseId}"
+        } 
+        InsertNotifications(**notification_values)
+
         return {"message": "Proposal sent successfully"}, 201
     
     @jwt_required
@@ -156,11 +168,21 @@ class PropsalDetails(Resource):
                     '$set': {
                         'serviceProvider': ObjectId(proposal.get('serviceProvider')),
                         'serviceProvidername': proposal.get('serviceProvidername'),
+                        'averageTimeTaken': proposal.get('averageTimeTaken'),
+                        'spDeadline': proposal.get('spDeadline'),
                         'status': "Contract-Waiting",
                         'rateType': proposal.get('rateType'),
                         'rate': proposal.get('rate')
                     }
                 })
+                # Send notifiations to the service providers with the message saying their proposal has been accepted
+                notification_values = {
+                    "title" : f"Your proposal has been accepted by the client {user.get('name')} ",
+                    "sender": ObjectId(current_user),
+                    "receiver": ObjectId(proposal.get('serviceProvider')),
+                    "link": f"/user/case/{ObjectId(proposal.get('caseId'))}"
+                } 
+                InsertNotifications(**notification_values)
             return {"message": accepted_value}
         return {
             "message": "You are not authorized to take action"

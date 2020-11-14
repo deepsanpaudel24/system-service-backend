@@ -12,11 +12,32 @@ import json
 from bson import json_util
 from datetime import datetime
 
-class Notifcations(Resource):
+def InsertNotifications(*args, **kwargs):
+    id = mongo.db.notifications.insert({ 
+            'title': kwargs['title'],
+            'sender': kwargs['sender'],
+            'receiver': kwargs['receiver'],
+            'status': 'unread',
+            'link': kwargs['link'],
+            'createdDate': datetime.today().strftime('%Y-%m-%d')
+    })
+
+class Notifications(Resource):
     @jwt_required
     def get(self):
         current_user = get_jwt_identity()
         notify_list = []
-        for notify in mongo.db.notifications.find({'receiver': ObjectId(current_user)}).sort("_id", -1):
+        for notify in mongo.db.notifications.find( {"$and": [ {'receiver': ObjectId(current_user)}, {'status': 'unread'} ]} ).sort("_id", -1).limit(7):
             notify_list.append(notify)
         return json.loads(json.dumps(notify_list, default=json_util.default))
+
+# To set the notifications as read
+class ChangeNotificationStatus(Resource):
+    @jwt_required
+    def put(self, notificationId):
+        mongo.db.notifications.update_one({'_id': ObjectId(notificationId)}, {
+                    '$set': {
+                    'status': "read"
+                }
+            })
+        return { "message": "Notification marked read"}, 200

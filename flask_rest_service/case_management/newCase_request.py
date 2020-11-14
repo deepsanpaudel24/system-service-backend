@@ -10,6 +10,7 @@ from bson import json_util
 from datetime import datetime
 import os
 import uuid
+from flask_rest_service.notifications import InsertNotifications
 
 _parse = reqparse.RequestParser()
 
@@ -82,15 +83,15 @@ class AddNewCaseRequest(Resource):
             'files': filesLocationList,
             'requestedDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection cases           
-        # insert new notification details in notification collection
-        # needs to palce the superadmin id in env varaibles
-        id = mongo.db.notifications.insert({
-            'title': "New service request from " + user.get('name'),
-            'sender': ObjectId(current_user),
-            'receiver': ObjectId("5f7196d7be625540246db3d7"),
-            'status': 'unread',
-            'createdDate': datetime.today().strftime('%Y-%m-%d')
-        })                                                                                 
+        #superadmin = ObjectId("5f7196d7be625540246db3d7")      
+        # Send notifiations to the super admin with the message saying client requested the new case . 
+        notification_values = {
+            "title" : f"A new case has been requested by the client {user.get('name')}",
+            "sender": ObjectId(current_user),
+            "receiver": ObjectId("5f7196d7be625540246db3d7"),
+            "link": f"/sadmin/case/{id}"
+        } 
+        InsertNotifications(**notification_values)                 
         return {"message": "Case requested successfully! "}, 201
 
 
