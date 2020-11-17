@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
 
-MESSAGE_FETCH_LIMIT = 5
+MESSAGE_FETCH_LIMIT = 10
 
 
 def get_encrypt_decrypt_key():
@@ -77,8 +77,10 @@ class InitialChatMessage(Resource):
 
 class OldChatMessages(Resource):
     @jwt_required
-    def get(self, room, count=0):
+    def post(self, room):
         current_user = get_jwt_identity()
+        data = request.get_json()
+        count = data['count']
         offset = count*MESSAGE_FETCH_LIMIT
         message_list = fetch_messages(room, MESSAGE_FETCH_LIMIT, offset)
         return message_list[::-1]

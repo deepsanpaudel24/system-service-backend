@@ -30,6 +30,7 @@ app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['UPLOAD_FOLDER'] = "flask_rest_service/static/allFiles"
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
+app.config['MAX_TABLE_ROWS'] = 2
 mongo = PyMongo(app)
 
 api = Api(app)
@@ -265,7 +266,7 @@ from flask_rest_service.form_generation import IntakeForm, IntakeFormList, Intak
 
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
-from flask_rest_service.communication import socketio, InitialChatMessage
+from flask_rest_service.communication import socketio, InitialChatMessage, OldChatMessages
 
 
 
@@ -276,7 +277,7 @@ api.add_resource(SendEmailConfirmation, '/api/v1/user/send-email-confirmation')
 api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
 api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
 api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
-api.add_resource(UserEmployeeList, '/api/v1/user/employee/list')
+api.add_resource(UserEmployeeList, '/api/v1/user/employee/list/<int:page>')
 api.add_resource(Profile, '/user/profile')
 api.add_resource(ProfileDetails, '/api/v1/user/profile-details')
 api.add_resource(ProfileSettingUpdate, '/api/v1/user/profile-setting')
@@ -361,5 +362,6 @@ api.add_resource(Revoke, '/api/v1/revoke')
 api.add_resource(ClearCredentials, '/api/v1/clear')
 
 api.add_resource(InitialChatMessage, '/api/v1/chat-initial-message/<room>')
+api.add_resource(OldChatMessages, '/api/v1/chat-more-message/<room>')
 
 
