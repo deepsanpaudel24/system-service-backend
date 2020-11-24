@@ -11,7 +11,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
-from datetime import datetime
+from datetime import datetime, timedelta
 
 _login_parser =  reqparse.RequestParser()
 
@@ -91,6 +91,8 @@ class UserRegister(Resource):
     def post(self):
         data = _user_parser.parse_args()
         if data['password'] == data['confirm_password']:
+            createdDate = datetime.today()
+            expiryDate = createdDate + timedelta(days=(1*365)) 
             _hased_password = generate_password_hash(data['password'])      # Password hasing
             user = mongo.db.users.find_one({'email': data['email']})
             if user:
@@ -106,7 +108,8 @@ class UserRegister(Resource):
                 'profile_detailed_completion': False,
                 'profile_billing_completion': False,
                 'logout': True,
-                'createdDate': datetime.today().strftime('%Y-%m-%d')
+                'createdDate': createdDate.strftime('%Y-%m-%d'),
+                'expiryDate': expiryDate.strftime('%Y-%m-%d')
             })                           # insert the data in the collection users                                                                                              
             return {"message": "User added successfully! "}, 201
         return { "message": "Confirm password does not match with the password"}, 403

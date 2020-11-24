@@ -1,1 +1,1 @@
-from flask_rest_service.custom_task.custom_tasks import AddCustomTask, CustomTasksDetails
+from flask_rest_service.custom_task.custom_tasks import AddCustomTask, CustomTasksDetails, CustomTasksList

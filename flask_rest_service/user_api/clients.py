@@ -10,7 +10,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import werkzeug
 from werkzeug.utils import secure_filename
@@ -73,10 +73,246 @@ _newCaseRequest_parser.add_argument('caseTags',
 s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret key. This key should be kept secret.
 
 
+# ******************************** FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
+
+# FOR SEARCH AND FILTER AND SORTING
+def SearchandFilterandSorting(*args, **kwargs):
+    clients = []
+    query_list = []
+    for filter_dict in kwargs.get('filters'):
+        for x,y in filter_dict.items():
+            query = { x : y}
+            query_list.append(query)
+    result = mongo.db.users.find( 
+        {"$and": [ 
+                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    { "$or": [ 
+                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                            ] 
+                    },
+                    { "$or": query_list } 
+                ] 
+        } 
+    ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
+    total_records = result.count()
+    for client in result:
+        clients.append(client)
+    return clients, total_records
+
+# FOR SEARCH AND SORTING
+def SearchandSorting(*args, **kwargs):
+    clients = []
+    # regex query to find the words in the table 
+    # below query find the records in the table where email begins with the keyword coming from the user input
+    query = mongo.db.users.find( 
+        {"$and": [ 
+                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    { "$or": [ 
+                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                            ] 
+                    } 
+                ] 
+        } 
+    ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
+    # This gives the total number of results we have so that the frontend can work accordingly
+    total_records = query.count()
+    for client in query:
+        clients.append(client)
+    return clients, total_records
+
+# FOR FILTER AND SORTING
+def FilterandSorting(*args, **kwargs):
+    clients = []
+    # take the value from list 
+    query_list = []
+    for filter_dict in kwargs.get('filters'):
+        for x,y in filter_dict.items():
+            query = { x : y}
+            query_list.append(query)
+    result = mongo.db.users.find ( 
+        { "$and": [ 
+                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) } , 
+                    { "$or": query_list }
+                 ] 
+        } 
+    ).sort(kwargs.get('sortingKey'), kwargs.get('sortingValue')).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
+    total_records = result.count()
+    for client in result:
+        clients.append(client)
+    return clients, total_records
+
+# FOR THE SEARCH AND THE FILTER 
+def SearchandFilter(*args, **kwargs):
+    clients = []
+    query_list = []
+    for filter_dict in kwargs.get('filters'):
+        for x,y in filter_dict.items():
+            query = { x : y}
+            query_list.append(query)
+    result = mongo.db.users.find( 
+        {"$and": [ 
+                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    { "$or": [ 
+                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                            ] 
+                    },
+                    { "$or": query_list } 
+                ] 
+        } 
+    )
+    total_records = result.count()
+    for client in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        clients.append(client)
+    return clients, total_records
+
+# FOR THE SEARCH
+def Search(*args, **kwargs):
+    clients = []
+    # regex query to find the words in the table 
+    # below query find the records in the table where email begins with the keyword coming from the user input
+    query = mongo.db.users.find( 
+        {"$and": [ 
+                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    { "$or": [ 
+                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                            ] 
+                    } 
+                ] 
+        } 
+    )
+    # This gives the total number of results we have so that the frontend can work accordingly
+    total_records = query.count()
+    for client in query.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        clients.append(client)
+    return clients, total_records
+
+# FOR THE FILTERS
+def Filter(*args, **kwargs):
+    clients = []
+    # take the value from list 
+    query_list = []
+    for filter_dict in kwargs.get('filters'):
+        for x,y in filter_dict.items():
+            query = { x : y}
+            query_list.append(query)
+    result = mongo.db.users.find ( { "$and": [ { 'invited_by': ObjectId ( kwargs.get('current_user') ) } , { "$or": query_list } ] } )
+    total_records = result.count()
+    for client in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        clients.append(client)
+    return clients, total_records
+
+# FOR THE SORTING
+def Sorting(*args, **kwargs):
+    clients = []
+    # take the value from list 
+    total_records = mongo.db.users.find ( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).count()
+    for client in mongo.db.users.find( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        clients.append(client)
+    return clients, total_records
+
+# FOR THE DEFAULT 
+def InitialRecords(*args, **kwargs):
+    clients = []
+    total_records = mongo.db.users.find ( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).count()
+    for client in mongo.db.users.find( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        clients.append(client)
+    return clients, total_records
+
+# ******************************** END OF FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
+
+
+class UserClientList(Resource):
+    @jwt_required
+    def get(self, page):
+        current_user = get_jwt_identity()
+        table_rows = app.config['MAX_TABLE_ROWS']
+        clients = []
+        count = page-1
+        offset = table_rows*count
+        total_records = mongo.db.users.find({'invited_by': ObjectId(current_user)}).count()
+        for service in mongo.db.users.find({'invited_by': ObjectId(current_user)}).sort("_id", -1).limit(table_rows).skip(offset):
+            clients.append(service)
+        return {'clients': json.loads(json.dumps(clients, default=json_util.default)), 'total_records': total_records, 'page' : page}
+
+    @jwt_required
+    def post(self, page):
+        current_user = get_jwt_identity()
+        data = request.get_json()
+        table_rows = app.config['MAX_TABLE_ROWS']
+        services = []
+        count = page-1
+        offset = table_rows*count
+        value  = {
+            "current_user": current_user,
+            "table_rows": table_rows,
+            "offset": offset
+        }
+
+        # for all three , search, filter and sorting
+        if data.get('keyword') and len(data.get('filters')) > 0 and data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
+            value['filters'] = data.get('filters')
+            value['search_keyword'] = data.get('keyword')
+            search_filter_sorting_result = SearchandFilterandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
+            return {'clients': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
+
+        # for search and sorting
+        elif data.get('keyword') and data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
+            value['search_keyword'] = data.get('keyword')
+            search_filter_sorting_result = SearchandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
+            return {'clients': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
+
+        # for filter and sorting 
+        elif len(data.get('filters')) and data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
+            value['filters'] = data.get('filters')
+            search_filter_sorting_result = FilterandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
+            return {'clients': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}   
+
+        # this is for, incase there are both search and filters
+        elif data.get('keyword') and len(data.get('filters')) > 0:
+            value['filters'] = data.get('filters')
+            value['search_keyword'] = data.get('keyword')
+            search_filter_result = SearchandFilter( **value ) # SearchandFilter is the function defined above 
+            return {'clients': json.loads(json.dumps(search_filter_result[0], default=json_util.default)), 'total_records': search_filter_result[1], 'page' : page}
+        
+        # if there is only search    
+        elif data.get('keyword'):
+            value['search_keyword'] = data.get('keyword')
+            search_result = Search( **value ) # Search is the function defined above 
+            return {'clients': json.loads(json.dumps(search_result[0], default=json_util.default)), 'total_records': search_result[1], 'page' : page}
+
+        # if there is only filter   
+        elif len(data.get('filters')) > 0:
+            value['filters'] = data.get('filters')
+            filter_result = Filter( **value ) # Filter is the function defined above 
+            return {'clients': json.loads(json.dumps(filter_result[0], default=json_util.default)), 'total_records': filter_result[1], 'page' : page}
+        
+        # if there is only sorting
+        elif data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
+            sorting_result = Sorting( **value, **data.get('sorting') ) # Sorting is the function defined above
+            return {'clients': json.loads(json.dumps(sorting_result[0], default=json_util.default)), 'total_records': sorting_result[1], 'page' : page}
+
+        # if there is no filter and search or default
+        else:
+            initial_result = InitialRecords( **value ) # Filter is the function defined above 
+            return {'clients': json.loads(json.dumps(initial_result[0], default=json_util.default)), 'total_records': initial_result[1], 'page' : page}
+
+
+
+
 # Registers the user with email and password
 class ClientRegister(Resource):
     @jwt_required
     def post(self):
+        createdDate = datetime.today()
+        expiryDate = createdDate + timedelta(days=(1*365)) 
         data = _client_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
@@ -95,7 +331,8 @@ class ClientRegister(Resource):
                     'profile_detailed_completion': False,
                     'profile_billing_completion': True,
                     'logout': True,
-                    'createdDate': datetime.today().strftime('%Y-%m-%d')
+                    'createdDate': createdDate.strftime('%Y-%m-%d'),
+                    'expiryDate': expiryDate.strftime('%Y-%m-%d')
                 })                           # insert the data in the collection users                                                                                              
                 return {"message": "Client added successfully! "}, 201
             return {"message": "You are not allowed to add client"}, 403
@@ -144,16 +381,6 @@ class ClientSetupPassword(Resource):
             return {"message": "The verification token has expired now. Please reset again."}, 401
         except BadTimeSignature:
             return {"message": "The verification token is invalid"}, 401
-
-
-class UserClientList(Resource):
-    @jwt_required
-    def get(self):
-        current_user = get_jwt_identity()
-        clients = []
-        for client in mongo.db.users.find({'invited_by': ObjectId(current_user)}).sort("_id", -1):
-            clients.append(client)
-        return json.loads(json.dumps(clients, default=json_util.default))
 
 
 class ClientDetails(Resource):

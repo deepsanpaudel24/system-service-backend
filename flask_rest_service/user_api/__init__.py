@@ -5,5 +5,7 @@ from flask_rest_service.user_api.forgot_password import  ForgotPassword, ResetPa
 from flask_rest_service.user_api.user_profile import Profile,ProfileDetails, UpdateUserIntro, UpdateUserType, UpdateUserProfileBasic, UpdateUserProfileDetailed, UpdateUserProfileBilling
 from flask_rest_service.user_api.employee import EmployeeRegister, UserEmployeeList, EmployeeSetupPassword, EmployeeDetails, SendEmployeeEmailInvitation
 from flask_rest_service.user_api.clients import ClientRegister, UserClientList, CreateClientCase, ClientSetupPassword, ClientEmailConfrimation, SendClientsIntakeForm, ClientDetails, ShowFillUpFormForClient, InsertClientIntakeFormValues, ClientIntakeFormFilledDetails, SPClientCases
-from flask_rest_service.user_api.people import PeopleRegister, PeopleDetails, PeopleInvitationEmail
+from flask_rest_service.user_api.people import PeopleRegister, PeopleDetails, UpdateExpiryDate, PeopleInvitationEmail, PeopleSetupPassword, UpdateCommission, PeopleList
 from flask_rest_service.user_api.profile_setting import ProfileSettingUpdate, ProfileIntroductionUpdate
+from flask_rest_service.user_api.people_cases import PeopleCases
+from flask_rest_service.user_api.child_account import ChildAccountList

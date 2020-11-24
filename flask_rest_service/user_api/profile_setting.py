@@ -14,6 +14,14 @@ import uuid
 
 _parse = reqparse.RequestParser()
 
+_intro_text_parser =  reqparse.RequestParser()
+
+_intro_text_parser.add_argument('intro_text',
+                        type=str,
+                        required=True,
+                        help="This field cannot be blank."
+                    )
+
 class ProfileSettingUpdate(Resource):
     @jwt_required
     def put(self):
@@ -43,7 +51,7 @@ class ProfileSettingUpdate(Resource):
 class ProfileIntroductionUpdate(Resource):
     @jwt_required
     def put(self):
-        data= request.get_json()
+        data= _intro_text_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
 
@@ -58,33 +66,35 @@ class ProfileIntroductionUpdate(Resource):
             filename = secure_filename(file.filename)
             filename, extension = filename.split('.')
             filename = f"{filename}-{uuid.uuid4().hex}.{extension}"
-            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
+            dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER_VIDEO'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            file.save(os.path.join(app.config['UPLOAD_FOLDER_VIDEO'], filename))
+        
+        print("value of data", data)
 
         if user:
-            if not data['intro_text'] and not filesLocationList:
-                return { "message": "Could not update the introduction"}, 400
-                
-            elif not data['intro_text']:
-                mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
-                        '$set': {
-                        "intro_video": filesLocationList
-                    }
-                })
-            elif not filesLocationList:
-                mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
-                        '$set': {
-                        "intro_text": data['intro_text']
-                    }
-                })
-            else :
+            if data['intro_text'] and filesLocationList:
                 mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
                         '$set': {
                         "intro_text": data['intro_text'],
                         "intro_video": filesLocationList
                     }
                 })
+
+            elif filesLocationList:
+                mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
+                        '$set': {
+                        "intro_video": filesLocationList
+                    }
+                })
+            elif data['intro_text']:
+                mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
+                        '$set': {
+                        "intro_text": data['intro_text']
+                    }
+                })
+            else :
+                return { "message": "Could not update the introduction"}, 400
             return {"message": "Details upated sucessfully"}, 200
         return {
             "message": "User does not exist"

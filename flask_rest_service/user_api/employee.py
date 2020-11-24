@@ -10,7 +10,7 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 _employee_parser =  reqparse.RequestParser()
@@ -52,6 +52,14 @@ _employeeRoles_parser.add_argument('reviewer',
                                 type=bool,
                                 required=False
                             )
+_employeeRoles_parser.add_argument('IntakeForm',
+                                type=bool,
+                                required=False
+                            )
+_employeeRoles_parser.add_argument('CustomTask',
+                                type=bool,
+                                required=False
+                            )
 _employeeRoles_parser.add_argument('notification_title',
                                 type=str,
                                 required=False
@@ -64,6 +72,8 @@ s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret k
 class EmployeeRegister(Resource):
     @jwt_required
     def post(self):
+        createdDate = datetime.today()
+        expiryDate = createdDate + timedelta(days=(1*365)) 
         data = _employee_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
@@ -82,7 +92,8 @@ class EmployeeRegister(Resource):
                     'profile_detailed_completion': True,
                     'profile_billing_completion': True,
                     'logout': True,
-                    'createdDate': datetime.today().strftime('%Y-%m-%d')
+                    'createdDate': createdDate.strftime('%Y-%m-%d'),
+                    'expiryDate': user.get('expiryDate')
                 })                           # insert the data in the collection users                                                                                              
                 return {"message": "Employee added successfully! "}, 201
             return {"message": "You are not allowed to add employee"}, 403
@@ -103,6 +114,36 @@ class SendEmployeeEmailInvitation(Resource):
             body="You have been invited on Service-System. Please open the link to verify setup your account. {}".format(link_react) 
         )
         mail.send(msg)
+
+
+# Reset password confirmation of the user 
+class EmployeeSetupPassword(Resource):
+    def put(self, token):
+        try:
+            data = _employee_setup_password_parser.parse_args()
+            setup_password_employee = s.loads(token, salt='employee-email-confirm', max_age=600)
+            if setup_password_employee:
+                if data['password'] == data['confirm-password']:
+                    user = mongo.db.users.find_one({'email': setup_password_employee})
+                    _hased_password = generate_password_hash(data['password'])      # Password hasing
+                    if user:
+                        mongo.db.users.update_one({'email': setup_password_employee}, {
+                            '$set':{
+                                'password': _hased_password,
+                                'is_verified': True
+                            }
+                        })
+                        return {
+                            "message": "Password Updated successfully",
+                        }, 200
+                    return {
+                        "message": "User not found"
+                    }, 404
+                return { "message", "Password and confirm password does not match"}, 403
+        except SignatureExpired:
+            return {"message": "The verification token has expired now. Please reset again."}, 401
+        except BadTimeSignature:
+            return {"message": "The verification token is invalid"}, 401
 
 # ******************************** FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
 
@@ -127,10 +168,13 @@ def SearchandFilterandSorting(*args, **kwargs):
                 ] 
         } 
     ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
-    total_records = result.count()
+    total_number = result.count()
     for emp in result:
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
@@ -150,10 +194,13 @@ def SearchandSorting(*args, **kwargs):
         } 
     ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
     # This gives the total number of results we have so that the frontend can work accordingly
-    total_records = query.count()
+    total_number = query.count()
     for emp in query:
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR FILTER AND SORTING
 def FilterandSorting(*args, **kwargs):
@@ -171,10 +218,13 @@ def FilterandSorting(*args, **kwargs):
                  ] 
         } 
     ).sort(kwargs.get('sortingKey'), kwargs.get('sortingValue')).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
-    total_records = result.count()
+    total_number = result.count()
     for emp in result:
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR THE SEARCH AND THE FILTER 
 def SearchandFilter(*args, **kwargs):
@@ -197,10 +247,13 @@ def SearchandFilter(*args, **kwargs):
                 ] 
         } 
     )
-    total_records = result.count()
+    total_number = result.count()
     for emp in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR THE SEARCH
 def Search(*args, **kwargs):
@@ -220,10 +273,13 @@ def Search(*args, **kwargs):
         } 
     )
     # This gives the total number of results we have so that the frontend can work accordingly
-    total_records = query.count()
+    total_number = query.count()
     for emp in query.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR THE FILTERS
 def Filter(*args, **kwargs):
@@ -235,27 +291,36 @@ def Filter(*args, **kwargs):
             query = { x : y}
             query_list.append(query)
     result = mongo.db.users.find ( { "$and": [ { 'owner': ObjectId ( kwargs.get('current_user') ) } , { "$or": query_list } ] } )
-    total_records = result.count()
+    total_number = result.count()
     for emp in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR THE SORTING
 def Sorting(*args, **kwargs):
     employees = []
     # take the value from list 
-    total_records = mongo.db.users.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
+    total_number = mongo.db.users.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
     for emp in mongo.db.users.find( {'owner': ObjectId ( kwargs.get('current_user') ) } ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
     employees = []
-    total_records = mongo.db.users.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
+    total_number = mongo.db.users.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
     for emp in mongo.db.users.find( {'owner': ObjectId ( kwargs.get('current_user') ) } ).sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+        total_records = main_query.count()
+        emp['no_cases'] = total_records
         employees.append(emp)
-    return employees, total_records
+    return employees, total_number
 
 # ******************************** END OF FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
 
@@ -268,10 +333,13 @@ class UserEmployeeList(Resource):
         employees = []
         count = page-1
         offset = table_rows*count
-        total_records = mongo.db.users.find({'owner': ObjectId(current_user)}).count()
+        total_number = mongo.db.users.find({'owner': ObjectId(current_user)}).count()
         for emp in mongo.db.users.find({'owner': ObjectId(current_user)}).sort("_id", -1).limit(table_rows).skip(offset):
+            main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(emp.get('_id')) } } } )
+            total_records = main_query.count()
+            emp['no_cases'] = total_records
             employees.append(emp)
-        return {'employees': json.loads(json.dumps(employees, default=json_util.default)), 'total_records': total_records, 'page' : page}
+        return {'employees': json.loads(json.dumps(employees, default=json_util.default)), 'total_records': total_number, 'page' : page}
 
     @jwt_required
     def post(self, page):
@@ -334,38 +402,7 @@ class UserEmployeeList(Resource):
         else:
             initial_result = InitialRecords( **value ) # Filter is the function defined above 
             return {'employees': json.loads(json.dumps(initial_result[0], default=json_util.default)), 'total_records': initial_result[1], 'page' : page}
-
-
-
-
-# Reset password confirmation of the user 
-class EmployeeSetupPassword(Resource):
-    def put(self, token):
-        try:
-            data = _employee_setup_password_parser.parse_args()
-            setup_password_employee = s.loads(token, salt='employee-email-confirm', max_age=600)
-            if setup_password_employee:
-                if data['password'] == data['confirm-password']:
-                    user = mongo.db.users.find_one({'email': setup_password_employee})
-                    _hased_password = generate_password_hash(data['password'])      # Password hasing
-                    if user:
-                        mongo.db.users.update_one({'email': setup_password_employee}, {
-                            '$set':{
-                                'password': _hased_password,
-                                'is_verified': True
-                            }
-                        })
-                        return {
-                            "message": "Password Updated successfully",
-                        }, 200
-                    return {
-                        "message": "User not found"
-                    }, 404
-                return { "message", "Password and confirm password does not match"}, 403
-        except SignatureExpired:
-            return {"message": "The verification token has expired now. Please reset again."}, 401
-        except BadTimeSignature:
-            return {"message": "The verification token is invalid"}, 401
+            
 
 # class to provide the employee details 
 class EmployeeDetails(Resource):
@@ -375,6 +412,9 @@ class EmployeeDetails(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user.get('user_type') == "SA" or user.get('user_type') == "SPCA" or user.get('user_type') == "CCA":
             employee_details = mongo.db.users.find_one({'_id': ObjectId(id)})
+            main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(id) } } } )
+            total_records = main_query.count()
+            employee_details['no_cases'] = total_records
             return json.loads(json.dumps(employee_details, default=json_util.default))
         return {"message" : "You are not authorized to view this page"}, 403
 
@@ -399,17 +439,11 @@ class EmployeeDetails(Resource):
                         'serviceManagement': rolesData['serviceManagement'],
                         'clientManagement': rolesData['clientManagement'],
                         'collaborator': rolesData['collaborator'],
-                        'reviewer': rolesData['reviewer']
+                        'reviewer': rolesData['reviewer'],
+                        'IntakeForm': rolesData['IntakeForm'],
+                        'CustomTask': rolesData['CustomTask']
                     }
                 })
-                # insert new notification details in notification collection
-                id = mongo.db.notifications.insert({
-                    'title': rolesData['notification_title'],
-                    'sender': ObjectId(current_user),
-                    'receiver': ObjectId(id),
-                    'status': 'unread',
-                    'createdDate': datetime.today().strftime('%Y-%m-%d')
-                })      
                 return {
                     "message": "Roles update successsfull"
                 }, 200
