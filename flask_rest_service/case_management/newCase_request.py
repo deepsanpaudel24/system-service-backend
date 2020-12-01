@@ -84,7 +84,7 @@ class AddNewCaseRequest(Resource):
             'requestedDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection cases           
         #superadmin = ObjectId("5f7196d7be625540246db3d7")      
-        # Send notifiations to the super admin with the message saying client requested the new case . 
+        # Send notifications to the super admin with the message saying client requested the new case . 
         notification_values = {
             "title" : f"A new case has been requested by the client {user.get('name')}",
             "sender": ObjectId(current_user),

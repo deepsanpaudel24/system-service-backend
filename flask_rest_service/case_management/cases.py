@@ -398,4 +398,36 @@ class UndoCaseForward(Resource):
         #     })
         return {"message": "Case forward was retrieved"}
 
+
+class RequestCaseCompletion(Resource):
+    @jwt_required
+    def put(self, id):
+        data = request.get_json()
+        current_user = get_jwt_identity()
+        case_details = mongo.db.cases.find( { '_id': ObjectId(id) } )
+        mongo.db.cases.update_one({'_id': ObjectId(id)}, {
+                    '$set': {
+                    'status': "Request-Completion"
+                }
+            })
+        notification_values = {
+            "title" : "A case forwarded by super-admin has been received",
+            "sender": ObjectId(current_user),
+            "receiver": ObjectId(case_details.get('client')),
+            "link": f"/user/case/{id}"
+        } 
+        InsertNotifications(**notification_values)
+        return { "message" : "Completion request made sucessfully" }, 200
+
+class ConfirmCaseCompletion(Resource):
+    @jwt_required
+    def put(self, id):
+        data = request.get_json()
+        mongo.db.cases.update_one({'_id': ObjectId(id)}, {
+                    '$set': {
+                    'status': "Confirm-Completion"
+                }
+            })
+        return { "message" : "Completion confirmed sucessfully" }, 200
+
             

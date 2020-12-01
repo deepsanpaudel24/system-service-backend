@@ -79,14 +79,21 @@ class ConfirmContractPaper(Resource):
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         case = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
         if case:
-            mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
+            if case.get('paymentType') == "advance-payment":
+                mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
                 '$set': {
-                    'status': "On-progress"
+                    'status': "Awaiting-Advance-Payment"
                 }
             })
+            else:
+                mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
+                    '$set': {
+                        'status': "On-progress"
+                    }
+                })
             # Send notifiations to the client saying they received the contract paper from service provider. 
             notification_values = {
-                "title" : f"{user.get('name')} has confirmed a contract. The case is now on progress.",
+                "title" : f"{user.get('name')} has confirmed a contract.",
                 "sender": ObjectId(current_user),
                 "receiver": case.get('client'),
                 "link": f"/user/case/{caseId}"

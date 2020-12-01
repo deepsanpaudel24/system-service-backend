@@ -42,9 +42,15 @@ def SearchandFilterandSorting(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+
     result = mongo.db.services.find( 
         {"$and": [ 
-                    { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -63,11 +69,15 @@ def SearchandFilterandSorting(*args, **kwargs):
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
     services = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.services.find( 
         {"$and": [ 
-                    { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -92,9 +102,15 @@ def FilterandSorting(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
+    
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+
     result = mongo.db.services.find ( 
         { "$and": [ 
-                    { 'owner': ObjectId ( kwargs.get('current_user') ) } , 
+                    main_condition , 
                     { "$or": query_list }
                  ] 
         } 
@@ -112,9 +128,14 @@ def SearchandFilter(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+
     result = mongo.db.services.find( 
         {"$and": [ 
-                    { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -133,11 +154,16 @@ def SearchandFilter(*args, **kwargs):
 # FOR THE SEARCH
 def Search(*args, **kwargs):
     services = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.services.find( 
         {"$and": [ 
-                    { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -162,7 +188,13 @@ def Filter(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    result = mongo.db.services.find ( { "$and": [ { 'owner': ObjectId ( kwargs.get('current_user') ) } , { "$or": query_list } ] } )
+    
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
+    else:
+        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+
+    result = mongo.db.services.find ( { "$and": [ main_condition , { "$or": query_list } ] } )
     total_records = result.count()
     for service in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
         services.append(service)
@@ -171,17 +203,29 @@ def Filter(*args, **kwargs):
 # FOR THE SORTING
 def Sorting(*args, **kwargs):
     services = []
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('owner') ) } )
+    else:
+        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('current_user') ) } )
+
     # take the value from list 
-    total_records = mongo.db.services.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for service in mongo.db.services.find( {'owner': ObjectId ( kwargs.get('current_user') ) } ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+    total_records = main_query.count()
+    for service in main_query.sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         services.append(service)
     return services, total_records
 
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
     services = []
-    total_records = mongo.db.services.find ( {'owner': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for service in mongo.db.services.find( {'owner': ObjectId ( kwargs.get('current_user') ) } ).sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('owner') ) } )
+    else:
+        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('current_user') ) } )
+
+    total_records = main_query.count()
+    for service in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         services.append(service)
     return services, total_records
 
@@ -191,18 +235,26 @@ class ServicesList(Resource):
     @jwt_required
     def get(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         table_rows = app.config['MAX_TABLE_ROWS']
         services = []
         count = page-1
         offset = table_rows*count
-        total_records = mongo.db.services.find({'owner': ObjectId(current_user)}).count()
-        for service in mongo.db.services.find({'owner': ObjectId(current_user)}).sort("_id", -1).limit(table_rows).skip(offset):
+        
+        if user_details.get('user_type') == "SPCAe" and user_details.get('serviceManagement'):
+            main_query = mongo.db.services.find({'serviceOwner': ObjectId(user_details.get('owner'))})
+        else:
+            main_query = mongo.db.services.find({'serviceOwner': ObjectId(current_user)})
+
+        total_records = main_query.count()
+        for service in main_query.sort("_id", -1).limit(table_rows).skip(offset):
             services.append(service)
         return {'services': json.loads(json.dumps(services, default=json_util.default)), 'total_records': total_records, 'page' : page}
 
     @jwt_required
     def post(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         data = request.get_json()
         table_rows = app.config['MAX_TABLE_ROWS']
         services = []
@@ -211,7 +263,9 @@ class ServicesList(Resource):
         value  = {
             "current_user": current_user,
             "table_rows": table_rows,
-            "offset": offset
+            "offset": offset,
+            "user_type": user_details.get('user_type'),
+            "owner": user_details.get('owner')
         }
 
         # for all three , search, filter and sorting
@@ -282,15 +336,28 @@ class Service(Resource):
         current_user = get_jwt_identity()
         data = _newServiceRegister_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        id = mongo.db.services.insert({
-            'title': data['title'],
-            'rateType': data['rateType'],
-            'rate': data['rate'],
-            'averageTimeTaken': data['averageTimeTake'],
-            'owner': ObjectId(current_user),
-            'status': "Active",
-            'createdDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection cases                                                                                            
+        if user.get('user_type') == "SPCAe":
+            id = mongo.db.services.insert({
+                'title': data['title'],
+                'rateType': data['rateType'],
+                'rate': data['rate'],
+                'averageTimeTaken': data['averageTimeTake'],
+                'owner': ObjectId(current_user),
+                'serviceOwner': ObjectId(user.get('owner')),
+                'status': "Active",
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })       
+        else:
+            id = mongo.db.services.insert({
+                'title': data['title'],
+                'rateType': data['rateType'],
+                'rate': data['rate'],
+                'averageTimeTaken': data['averageTimeTake'],
+                'owner': ObjectId(current_user),
+                'serviceOwner': ObjectId(current_user),
+                'status': "Active",
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection cases                                                                                            
         return {"message": "Service added successfully! "}, 201
 
 class ServiceAction(Resource):

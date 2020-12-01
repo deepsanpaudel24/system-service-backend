@@ -32,7 +32,7 @@ _replyCaseRequest_parser.add_argument('rateType',
                     help="This field cannot be blank."
                     )
 _replyCaseRequest_parser.add_argument('rate',
-                    type=float,
+                    type=str,
                     required=True,
                     help="This field cannot be blank."
                     )
@@ -44,6 +44,16 @@ _replyCaseRequest_parser.add_argument('averageTimeTaken',
 _replyCaseRequest_parser.add_argument('spDeadline',
                     type=str,
                     required=True,
+                    help="This field cannot be blank."
+                    )
+_replyCaseRequest_parser.add_argument('paymentType',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+_replyCaseRequest_parser.add_argument('advancePayment',
+                    type=float,
+                    required=False,
                     help="This field cannot be blank."
                     )
 
@@ -89,6 +99,8 @@ class ReplyCaseRequest(Resource):
             'caseId': ObjectId(caseId),
             'serviceProvider': ObjectId(current_user),
             'serviceProvidername': user.get('name'),
+            'paymentType': data['paymentType'],
+            'advancePayment': data['advancePayment'],
             'files': filesLocationList,
             'sentDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection proposals   
@@ -164,6 +176,7 @@ class PropsalDetails(Resource):
                 }
             })
             if accepted_value == True:
+                # advancePayment is the amount of percentage of advance payment of total amount 
                 mongo.db.cases.update_one({'_id': ObjectId(proposal.get('caseId'))}, {
                     '$set': {
                         'serviceProvider': ObjectId(proposal.get('serviceProvider')),
@@ -172,7 +185,9 @@ class PropsalDetails(Resource):
                         'spDeadline': proposal.get('spDeadline'),
                         'status': "Contract-Waiting",
                         'rateType': proposal.get('rateType'),
-                        'rate': proposal.get('rate')
+                        'rate': proposal.get('rate'),
+                        'paymentType':proposal.get('paymentType'),
+                        'advancePayment':proposal.get('advancePayment'),
                     }
                 })
                 # Send notifiations to the service providers with the message saying their proposal has been accepted

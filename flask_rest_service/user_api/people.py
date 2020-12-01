@@ -147,6 +147,7 @@ def Search(*args, **kwargs):
     peoples = []
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
+    
     query = mongo.db.users.find( 
         {"$and": [ 
                     { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } }, 
@@ -279,7 +280,7 @@ class PeopleRegister(Resource):
     @jwt_required
     def post(self):
         createdDate = datetime.today()
-        expiryDate = createdDate + timedelta(days=(1*365))
+        expiryDate = createdDate + timedelta(days=(1*7))
         data = _people_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})

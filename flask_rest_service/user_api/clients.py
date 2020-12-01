@@ -78,6 +78,12 @@ s = URLSafeTimedSerializer('secret_key')    # Serizer instance with the secret k
 # FOR SEARCH AND FILTER AND SORTING
 def SearchandFilterandSorting(*args, **kwargs):
     clients = []
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
@@ -85,7 +91,7 @@ def SearchandFilterandSorting(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.users.find( 
         {"$and": [ 
-                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -104,11 +110,17 @@ def SearchandFilterandSorting(*args, **kwargs):
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
     clients = []
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.users.find( 
         {"$and": [ 
-                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -127,6 +139,12 @@ def SearchandSorting(*args, **kwargs):
 # FOR FILTER AND SORTING
 def FilterandSorting(*args, **kwargs):
     clients = []
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
     # take the value from list 
     query_list = []
     for filter_dict in kwargs.get('filters'):
@@ -135,7 +153,7 @@ def FilterandSorting(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.users.find ( 
         { "$and": [ 
-                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) } , 
+                    main_condition , 
                     { "$or": query_list }
                  ] 
         } 
@@ -148,6 +166,11 @@ def FilterandSorting(*args, **kwargs):
 # FOR THE SEARCH AND THE FILTER 
 def SearchandFilter(*args, **kwargs):
     clients = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
@@ -155,7 +178,7 @@ def SearchandFilter(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.users.find( 
         {"$and": [ 
-                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -174,11 +197,16 @@ def SearchandFilter(*args, **kwargs):
 # FOR THE SEARCH
 def Search(*args, **kwargs):
     clients = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.users.find( 
         {"$and": [ 
-                    { 'invited_by': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -203,7 +231,13 @@ def Filter(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    result = mongo.db.users.find ( { "$and": [ { 'invited_by': ObjectId ( kwargs.get('current_user') ) } , { "$or": query_list } ] } )
+    
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'invited_by': ObjectId(kwargs.get('owner') ) }
+    else: 
+        main_condition = { 'invited_by': ObjectId( kwargs.get('current_user') ) }
+
+    result = mongo.db.users.find ( { "$and": [ main_condition , { "$or": query_list } ] } )
     total_records = result.count()
     for client in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
         clients.append(client)
@@ -213,16 +247,27 @@ def Filter(*args, **kwargs):
 def Sorting(*args, **kwargs):
     clients = []
     # take the value from list 
-    total_records = mongo.db.users.find ( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for client in mongo.db.users.find( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.users.find( { 'invited_by': ObjectId(kwargs.get('owner') ) } )
+    else: 
+        main_query = mongo.db.users.find( { 'invited_by': ObjectId( kwargs.get('current_user') ) } )
+
+    total_records = main_query.count()
+    for client in main_query.sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         clients.append(client)
     return clients, total_records
 
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
     clients = []
-    total_records = mongo.db.users.find ( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for client in mongo.db.users.find( {'invited_by': ObjectId ( kwargs.get('current_user') ) } ).sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.users.find( { 'invited_by': ObjectId(kwargs.get('owner')) } )
+    else: 
+        main_query = mongo.db.users.find( { 'invited_by': ObjectId( kwargs.get('current_user') ) } )
+
+    total_records = main_query.count()
+    for client in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         clients.append(client)
     return clients, total_records
 
@@ -233,18 +278,26 @@ class UserClientList(Resource):
     @jwt_required
     def get(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         table_rows = app.config['MAX_TABLE_ROWS']
         clients = []
         count = page-1
         offset = table_rows*count
-        total_records = mongo.db.users.find({'invited_by': ObjectId(current_user)}).count()
-        for service in mongo.db.users.find({'invited_by': ObjectId(current_user)}).sort("_id", -1).limit(table_rows).skip(offset):
-            clients.append(service)
+        
+        if user_details.get('user_type') == "SPCAe":
+            main_query = mongo.db.users.find( { 'invited_by': ObjectId(user_details.get('owner')) } )
+        else: 
+            main_query = mongo.db.users.find( { 'invited_by': ObjectId(current_user) } )
+        
+        total_records = main_query.count()
+        for client in main_query.sort("_id", -1).limit(table_rows).skip(offset):
+            clients.append(client)
         return {'clients': json.loads(json.dumps(clients, default=json_util.default)), 'total_records': total_records, 'page' : page}
 
     @jwt_required
     def post(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         data = request.get_json()
         table_rows = app.config['MAX_TABLE_ROWS']
         services = []
@@ -253,7 +306,9 @@ class UserClientList(Resource):
         value  = {
             "current_user": current_user,
             "table_rows": table_rows,
-            "offset": offset
+            "offset": offset,
+            "user_type": user_details.get('user_type'),
+            "owner": user_details.get('owner')
         }
 
         # for all three , search, filter and sorting
@@ -312,12 +367,12 @@ class ClientRegister(Resource):
     @jwt_required
     def post(self):
         createdDate = datetime.today()
-        expiryDate = createdDate + timedelta(days=(1*365)) 
+        expiryDate = createdDate + timedelta(days=(1*7)) 
         data = _client_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         if user:
-            if user.get("user_type") == "SPCA" or user.get("user_type") == "SPCAe" or user.get("user_type") == "SPS":
+            if user.get("user_type") == "SPCA" or user.get("user_type") == "SPS":
                 client_existence = mongo.db.users.find_one({'email': data['email']})
                 if client_existence:
                     return {"message": "Email already registered in the system"}, 400
@@ -327,6 +382,24 @@ class ClientRegister(Resource):
                     'user_type':"CCA",
                     'is_verified': False,
                     'invited_by': ObjectId(current_user),
+                    'profile_basic_completion': False,
+                    'profile_detailed_completion': False,
+                    'profile_billing_completion': True,
+                    'logout': True,
+                    'createdDate': createdDate.strftime('%Y-%m-%d'),
+                    'expiryDate': expiryDate.strftime('%Y-%m-%d')
+                })                           # insert the data in the collection users                                                                                              
+                return {"message": "Client added successfully! "}, 201
+            elif user.get("user_type") == "SPCAe":
+                client_existence = mongo.db.users.find_one({'email': data['email']})
+                if client_existence:
+                    return {"message": "Email already registered in the system"}, 400
+                id = mongo.db.users.insert({
+                    'email': data['email'],
+                    'password':'',
+                    'user_type':"CCA",
+                    'is_verified': False,
+                    'invited_by': ObjectId(user.get("owner")),
                     'profile_basic_completion': False,
                     'profile_detailed_completion': False,
                     'profile_billing_completion': True,

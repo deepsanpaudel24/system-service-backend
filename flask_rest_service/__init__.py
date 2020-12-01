@@ -24,6 +24,7 @@ cors = CORS(app)
 app.secret_key = "service-system"
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['MONGO_URI'] = MONGO_URL
+app.config['FRONTEND_DOMAIN'] = "http://localhost:3000"
 app.config['JWT_BLACKLIST_ENABLED'] = True
 
 # Only allow JWT cookies to be sent over https. In production, this
@@ -236,7 +237,8 @@ from flask_rest_service.case_management import (    AddNewCaseRequest, Cases, Cl
                                                     ServiceProviderCases, ServiceProviderCasesDetails, ReplyCaseRequest,
                                                     CaseProposals, PropsalDetails, ServiceProviderCasesActive, ProposalDetailsForSP,
                                                     EmployeeCaseAssignment, EmployeeCases, UploadContractPaper, ContractDetails, ConfirmContractPaper,
-                                                    UpdateRelatedDocuments, DeleteRelatedDocuments, EmployeeCasesForSP, UndoCaseForward
+                                                    UpdateRelatedDocuments, DeleteRelatedDocuments, EmployeeCasesForSP, UndoCaseForward,
+                                                    RequestCaseCompletion, ConfirmCaseCompletion
                                                 )
 
 from flask_rest_service.service_management import Service, ServicesList, ServiceAction, SaViewServicesList
@@ -252,6 +254,8 @@ from flask_rest_service.form_generation import IntakeForm, IntakeFormList, Intak
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
 from flask_rest_service.communication import socketio, InitialChatMessage, OldChatMessages
+
+from flask_rest_service.payment_module import create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, create_subscription_checkout_session
 
 
 
@@ -307,6 +311,8 @@ api.add_resource(ConfirmContractPaper, '/api/v1/contract-confirm/<caseId>')
 api.add_resource(UpdateRelatedDocuments, '/api/v1/case/documents/<id>')
 api.add_resource(DeleteRelatedDocuments, '/api/v1/case/docs-remove/<id>')
 api.add_resource(CreateClientCase, '/api/v1/sp-client/create-case/<clientId>')
+api.add_resource(RequestCaseCompletion, '/api/v1/request-case-completion/<id>')
+api.add_resource(ConfirmCaseCompletion, '/api/v1/confirm-case-completion/<id>')
 
 api.add_resource(Service, '/api/v1/service')
 api.add_resource(ServiceAction, '/api/v1/service/<id>')
@@ -357,5 +363,13 @@ api.add_resource(ClearCredentials, '/api/v1/clear')
 
 api.add_resource(InitialChatMessage, '/api/v1/chat-initial-message/<room>')
 api.add_resource(OldChatMessages, '/api/v1/chat-more-message/<room>')
+
+api.add_resource(create_checkout_session, '/api/v1/create-checkout-session')
+api.add_resource(create_subscription_checkout_session, '/api/v1/create-subscription-checkout-session')
+api.add_resource(Webhook, '/api/v1/webhooks')
+api.add_resource(Onboard_user, '/api/v1/onboard')
+api.add_resource(Onboard_user_refresh, '/api/v1/onboard-user/refresh')
+api.add_resource(TransferInfo, '/api/v1/transfer-info/<id>')
+api.add_resource(Transfer, '/api/v1/transfer')
 
 

@@ -92,7 +92,7 @@ class UserRegister(Resource):
         data = _user_parser.parse_args()
         if data['password'] == data['confirm_password']:
             createdDate = datetime.today()
-            expiryDate = createdDate + timedelta(days=(1*365)) 
+            expiryDate = createdDate + timedelta(days=(1*7)) 
             _hased_password = generate_password_hash(data['password'])      # Password hasing
             user = mongo.db.users.find_one({'email': data['email']})
             if user:
@@ -170,6 +170,8 @@ class CheckUserValidity(Resource):
                 "profile_basic_completion": user.get("profile_basic_completion"),
                 "serviceManagement": user.get("serviceManagement"),
                 "clientManagement": user.get("clientManagement"),
+                "CustomTask":user.get("CustomTask"),
+                "IntakeForm":user.get("IntakeForm"),
                 "name": user.get("name")
             }, 200
         if user:

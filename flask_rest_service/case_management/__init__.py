@@ -1,6 +1,7 @@
 from flask_rest_service.case_management.newCase_request import AddNewCaseRequest, UpdateRelatedDocuments, DeleteRelatedDocuments
 from flask_rest_service.case_management.cases import( Cases, ClientCasesDetails, ServiceProviderCasesActive, 
-                                                        ForwardCaseRequest, ServiceProviderCasesDetails, UndoCaseForward
+                                                        ForwardCaseRequest, ServiceProviderCasesDetails, UndoCaseForward,
+                                                        RequestCaseCompletion, ConfirmCaseCompletion
                                                     )
 from flask_rest_service.case_management.service_provider_cases import ServiceProviderCases
 from flask_rest_service.case_management.client_cases import ClientCases

@@ -14,6 +14,10 @@ from datetime import datetime
 # FOR SEARCH AND FILTER AND SORTING
 def SearchandFilterandSorting(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
@@ -21,7 +25,7 @@ def SearchandFilterandSorting(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.intake_forms.find( 
         {"$and": [ 
-                    { 'createdBy': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -40,11 +44,15 @@ def SearchandFilterandSorting(*args, **kwargs):
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.intake_forms.find( 
         {"$and": [ 
-                    { 'createdBy': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -63,6 +71,10 @@ def SearchandSorting(*args, **kwargs):
 # FOR FILTER AND SORTING
 def FilterandSorting(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     # take the value from list 
     query_list = []
     for filter_dict in kwargs.get('filters'):
@@ -71,7 +83,7 @@ def FilterandSorting(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.intake_forms.find ( 
         { "$and": [ 
-                    { 'createdBy': ObjectId ( kwargs.get('current_user') ) } , 
+                    main_condition , 
                     { "$or": query_list }
                  ] 
         } 
@@ -84,6 +96,10 @@ def FilterandSorting(*args, **kwargs):
 # FOR THE SEARCH AND THE FILTER 
 def SearchandFilter(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
@@ -91,7 +107,7 @@ def SearchandFilter(*args, **kwargs):
             query_list.append(query)
     result = mongo.db.intake_forms.find( 
         {"$and": [ 
-                    { 'createdBy': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -110,11 +126,15 @@ def SearchandFilter(*args, **kwargs):
 # FOR THE SEARCH
 def Search(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
     query = mongo.db.intake_forms.find( 
         {"$and": [ 
-                    { 'createdBy': ObjectId ( kwargs.get('current_user') ) }, 
+                    main_condition, 
                     { "$or": [ 
                                 { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
@@ -133,13 +153,17 @@ def Search(*args, **kwargs):
 # FOR THE FILTERS
 def Filter(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_condition = { 'createdBy': ObjectId(kwargs.get('owner') ) }
+    else:
+        main_condition = { 'createdBy': ObjectId(kwargs.get('current_user') ) } 
     # take the value from list 
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    result = mongo.db.intake_forms.find ( { "$and": [ { 'createdBy': ObjectId ( kwargs.get('current_user') ) } , { "$or": query_list } ] } )
+    result = mongo.db.intake_forms.find ( { "$and": [ main_condition , { "$or": query_list } ] } )
     total_records = result.count()
     for service in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
         forms.append(service)
@@ -148,17 +172,25 @@ def Filter(*args, **kwargs):
 # FOR THE SORTING
 def Sorting(*args, **kwargs):
     forms = []
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(kwargs.get('owner')) } )
+    else:
+        main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(kwargs.get('current_user') ) } )
     # take the value from list 
-    total_records = mongo.db.intake_forms.find ( {'createdBy': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for service in mongo.db.intake_forms.find( {'createdBy': ObjectId ( kwargs.get('current_user') ) } ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+    total_records = main_query.count()
+    for service in main_query.sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         forms.append(service)
     return forms, total_records
 
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
     forms = []
-    total_records = mongo.db.intake_forms.find ( {'createdBy': ObjectId ( kwargs.get('current_user') ) } ).count()
-    for service in mongo.db.intake_forms.find( {'createdBy': ObjectId ( kwargs.get('current_user') ) } ).sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+    if kwargs.get('user_type') == "SPCAe":
+        main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(kwargs.get('owner')) } )
+    else:
+        main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(kwargs.get('current_user') ) } )
+    total_records = main_query.count()
+    for service in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
         forms.append(service)
     return forms, total_records
 
@@ -169,18 +201,26 @@ class IntakeFormList(Resource):
     @jwt_required
     def get(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         table_rows = app.config['MAX_TABLE_ROWS']
         forms = []
         count = page-1
         offset = table_rows*count
-        total_records = mongo.db.intake_forms.find({'createdBy': ObjectId(current_user)}).count()
-        for form in mongo.db.intake_forms.find({'createdBy': ObjectId(current_user)}).sort("_id", -1).limit(table_rows).skip(offset):
+
+        if user_details.get('user_type') == "SPCAe" and user_details.get('CustomTask'):
+            main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(user_details.get('owner')) } )
+        else:
+            main_query = mongo.db.intake_forms.find( { 'createdBy': ObjectId(current_user) } )
+
+        total_records = main_query.count()
+        for form in main_query.sort("_id", -1).limit(table_rows).skip(offset):
             forms.append(form)
         return {'forms': json.loads(json.dumps(forms, default=json_util.default)), 'total_records': total_records, 'page' : page}
 
     @jwt_required
     def post(self, page):
         current_user = get_jwt_identity()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         data = request.get_json()
         table_rows = app.config['MAX_TABLE_ROWS']
         forms = []
@@ -189,7 +229,9 @@ class IntakeFormList(Resource):
         value  = {
             "current_user": current_user,
             "table_rows": table_rows,
-            "offset": offset
+            "offset": offset,
+            "user_type": user_details.get('user_type'),
+            "owner": user_details.get('owner')
         }
 
         # for all three , search, filter and sorting

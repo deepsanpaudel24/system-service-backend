@@ -36,6 +36,14 @@ _employee_setup_password_parser.add_argument('confirm-password',
 
 _employeeRoles_parser = reqparse.RequestParser()
 
+_employeeRoles_parser.add_argument('caseManagement',
+                                type=bool,
+                                required=False
+                            )
+_employeeRoles_parser.add_argument('assignCaseManagement',
+                                type=bool,
+                                required=False
+                            )
 _employeeRoles_parser.add_argument('serviceManagement',
                                 type=bool,
                                 required=False
@@ -431,11 +439,13 @@ class EmployeeDetails(Resource):
         rolesData= _employeeRoles_parser.parse_args()
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SA":
+        if user.get('user_type') == "SPCA" or user.get('user_type') == "SA" or user.get('user_type') == "CCA":
             current_employee = mongo.db.users.find_one({'_id': ObjectId(id)})
             if current_employee:
                 mongo.db.users.update_one({'_id': ObjectId(id)}, {
                         '$set': {
+                        'caseManagement': rolesData['caseManagement'],
+                        'assignCaseManagement': rolesData['assignCaseManagement'],
                         'serviceManagement': rolesData['serviceManagement'],
                         'clientManagement': rolesData['clientManagement'],
                         'collaborator': rolesData['collaborator'],
