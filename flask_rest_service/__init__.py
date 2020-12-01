@@ -245,7 +245,7 @@ from flask_rest_service.service_management import Service, ServicesList, Service
 
 from flask_rest_service.notifications import Notifications, ChangeNotificationStatus
 
-from flask_rest_service.timers import AddTimer, TotalSpentTime
+from flask_rest_service.timers import AddTimer, TotalSpentTime, CaseTimersList
 
 from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails, CustomTasksList
 
@@ -340,6 +340,7 @@ api.add_resource(ChangeNotificationStatus, '/api/v1/notifications/<notificationI
 
 api.add_resource(AddTimer, '/api/v1/timers')
 api.add_resource(TotalSpentTime, '/api/v1/total-time/<caseId>')
+api.add_resource(CaseTimersList, '/api/v1/case-timers/<int:page>/<caseId>')
 
 api.add_resource(AddCustomTask, '/api/v1/tasks')
 api.add_resource(CustomTasksList, '/api/v1/tasks/<int:page>')

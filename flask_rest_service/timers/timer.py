@@ -48,6 +48,16 @@ _timerInfo_parser.add_argument('stoppingTime',
                     required=True,
                     help="This field cannot be blank."
                     )
+_timerInfo_parser.add_argument('humanize_starting_time',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
+_timerInfo_parser.add_argument('humanize_stopping_time',
+                    type=str,
+                    required=True,
+                    help="This field cannot be blank."
+                    )
 _timerInfo_parser.add_argument('Timervalue',
                     type=float,
                     required=True,
@@ -68,17 +78,22 @@ class AddTimer(Resource):
     @jwt_required
     def post(self):
         current_user = get_jwt_identity()
-        data = _timerInfo_parser.parse_args()
-        id = mongo.db.timers.insert({
-            'title': data['title'],
-            'startingTime': data['startingTime'],
-            'stoppingTime': data['stoppingTime'],
-            'Timervalue': data['Timervalue'],
-            'workBy': ObjectId(current_user),
-            'billable': data['Billable'],
-            'caseId': ObjectId(data['caseId']),
-            'createdDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection cases                                                                                            
+        data = request.get_json()
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
+        if data['Timervalue']:
+            id = mongo.db.timers.insert({
+                'title': data['title'],
+                'startingTime': data['startingTime'],
+                'stoppingTime': data['stoppingTime'],
+                'humanize_starting_time': data['humanize_starting_time'],
+                'humanize_stopping_time': data['humanize_stopping_time'],
+                'Timervalue': data['Timervalue'],
+                'workBy': ObjectId(current_user),
+                'workByName': user_details.get('name'),
+                'billable': data['Billable'],
+                'caseId': ObjectId(data['caseId']),
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection cases                                                                                            
         return {"message": "Timer added successfully! "}, 201
 
 class TotalSpentTime(Resource):

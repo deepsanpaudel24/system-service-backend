@@ -316,7 +316,7 @@ class ClientCasesDetails(Resource):
                 total_records = main_query.count()
                 service_provider['no_forwarded_cases'] = total_records
             for service_provider in result:
-                main_query = mongo.db.cases.find( { "$and": [ {'_id': ObjectId(id)} , {"status": "On-progress"} ] } )
+                main_query = mongo.db.cases.find( { "$and": [ {'serviceProvider': ObjectId(service_provider.get('_id'))} , {"status": "On-progress"} ] } )
                 total_records = main_query.count()
                 service_provider['no_progress_cases'] = total_records
             forwardedSP_list = []
