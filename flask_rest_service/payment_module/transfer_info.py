@@ -80,6 +80,7 @@ class TransferInfo(Resource):
                     "commission_rate": commission_rate,
                     "application_fee": application_fee,
                     "total_payable_amount": total_payable_amount,
+                    "total_payable_amount_converted": total_payable_amount * float(case_details.get('conversion_rate')),
                     "sp_currency": sp_currency,
                     "admin_stripe_balance": admin_stripe_balance,
                     "admin_stripe_currency": admin_stripe_currency,

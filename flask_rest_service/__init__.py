@@ -255,7 +255,10 @@ from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDri
 
 from flask_rest_service.communication import socketio, InitialChatMessage, OldChatMessages
 
-from flask_rest_service.payment_module import create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, create_subscription_checkout_session
+from flask_rest_service.payment_module import ( create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, 
+                                                create_subscription_checkout_session, CheckoutTransactions, ClientCaseTransactions, SATransactions,
+                                                SACaseTransactions, UserStripeAccInfo, SPTransactions, SPCaseTransactions
+                                            )
 
 
 
@@ -372,5 +375,10 @@ api.add_resource(Onboard_user, '/api/v1/onboard')
 api.add_resource(Onboard_user_refresh, '/api/v1/onboard-user/refresh')
 api.add_resource(TransferInfo, '/api/v1/transfer-info/<id>')
 api.add_resource(Transfer, '/api/v1/transfer')
-
-
+api.add_resource(CheckoutTransactions, '/api/v1/checkout-transactions/<int:page>')
+api.add_resource(ClientCaseTransactions, '/api/v1/client-case-transactions/<caseId>')
+api.add_resource(SATransactions, '/api/v1/sa-transactions/<int:page>')
+api.add_resource(SACaseTransactions, '/api/v1/sa-case-transactions/<caseId>')
+api.add_resource(SPTransactions, '/api/v1/sp-transactions/<int:page>')
+api.add_resource(SPCaseTransactions, '/api/v1/sp-case-transactions/<caseId>')
+api.add_resource(UserStripeAccInfo, '/api/v1/user/stripe-acc-info')

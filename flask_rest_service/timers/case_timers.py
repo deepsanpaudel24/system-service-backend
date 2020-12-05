@@ -42,25 +42,22 @@ def convertTime(item):
 
 # FOR SEARCH AND FILTER AND SORTING
 def SearchandFilterandSorting(*args, **kwargs):
-    services = []
+    timers = []
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
 
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
 
-    result = mongo.db.services.find( 
+    result = mongo.db.timers.find( 
         {"$and": [ 
                     main_condition, 
                     { "$or": [ 
-                                { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
-                                { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
-                                { "averageTimeTaken": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                                { "humanize_starting_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "humanize_stopping_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "Timervalue": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
                     },
                     { "$or": query_list } 
@@ -68,26 +65,23 @@ def SearchandFilterandSorting(*args, **kwargs):
         } 
     ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
     total_records = result.count()
-    for service in result:
-        services.append(service)
-    return services, total_records
+    for timer in result:
+        timers.append(timer)
+    return timers, total_records
 
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
-    services = []
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+    timers = []
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
-    query = mongo.db.services.find( 
+    query = mongo.db.timers.find( 
         {"$and": [ 
                     main_condition, 
                     { "$or": [ 
-                                { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
-                                { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
-                                { "averageTimeTaken": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                                { "humanize_starting_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "humanize_stopping_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "Timervalue": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
                     } 
                 ] 
@@ -95,13 +89,13 @@ def SearchandSorting(*args, **kwargs):
     ).sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
     # This gives the total number of results we have so that the frontend can work accordingly
     total_records = query.count()
-    for service in query:
-        services.append(service)
-    return services, total_records
+    for timer in query:
+        timers.append(timer)
+    return timers, total_records
 
 # FOR FILTER AND SORTING
 def FilterandSorting(*args, **kwargs):
-    services = []
+    timers = []
     # take the value from list 
     query_list = []
     for filter_dict in kwargs.get('filters'):
@@ -109,12 +103,9 @@ def FilterandSorting(*args, **kwargs):
             query = { x : y}
             query_list.append(query)
     
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
 
-    result = mongo.db.services.find ( 
+    result = mongo.db.timers.find ( 
         { "$and": [ 
                     main_condition , 
                     { "$or": query_list }
@@ -122,30 +113,26 @@ def FilterandSorting(*args, **kwargs):
         } 
     ).sort(kwargs.get('sortingKey'), kwargs.get('sortingValue')).limit(kwargs.get('table_rows')).skip(kwargs.get('offset'))
     total_records = result.count()
-    for service in result:
-        services.append(service)
-    return services, total_records
+    for timer in result:
+        timers.append(timer)
+    return timers, total_records
 
 # FOR THE SEARCH AND THE FILTER 
 def SearchandFilter(*args, **kwargs):
-    services = []
+    timers = []
     query_list = []
     for filter_dict in kwargs.get('filters'):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
-
-    result = mongo.db.services.find( 
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
+    result = mongo.db.timers.find( 
         {"$and": [ 
                     main_condition, 
                     { "$or": [ 
-                                { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
-                                { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
-                                { "averageTimeTaken": { "$regex": f".*{kwargs.get('search_keyword')}.*" } }  
+                                { "humanize_starting_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "humanize_stopping_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "Timervalue": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
                     },
                     { "$or": query_list } 
@@ -153,27 +140,25 @@ def SearchandFilter(*args, **kwargs):
         } 
     )
     total_records = result.count()
-    for service in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
-        services.append(service)
-    return services, total_records
+    for timer in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        timers.append(timer)
+    return timers, total_records
 
 # FOR THE SEARCH
 def Search(*args, **kwargs):
-    services = []
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
+    timers = []
+
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
 
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
-    query = mongo.db.services.find( 
+    query = mongo.db.timers.find( 
         {"$and": [ 
                     main_condition, 
                     { "$or": [ 
-                                { "title": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
-                                { "rate": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
-                                { "averageTimeTaken": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
+                                { "humanize_starting_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "humanize_stopping_time": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
+                                { "Timervalue": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
                     } 
                 ] 
@@ -181,13 +166,13 @@ def Search(*args, **kwargs):
     )
     # This gives the total number of results we have so that the frontend can work accordingly
     total_records = query.count()
-    for service in query.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
-        services.append(service)
-    return services, total_records
+    for timer in query.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        timers.append(timer)
+    return timers, total_records
 
 # FOR THE FILTERS
 def Filter(*args, **kwargs):
-    services = []
+    timers = []
     # take the value from list 
     query_list = []
     for filter_dict in kwargs.get('filters'):
@@ -195,45 +180,33 @@ def Filter(*args, **kwargs):
             query = { x : y}
             query_list.append(query)
     
-    if kwargs.get('user_type') == "SPCAe":
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('owner') ) }
-    else:
-        main_condition = { 'serviceOwner': ObjectId( kwargs.get('current_user') ) }
-
-    result = mongo.db.services.find ( { "$and": [ main_condition , { "$or": query_list } ] } )
+    main_condition = {'caseId': ObjectId(kwargs.get('caseId'))}
+    result = mongo.db.timers.find ( { "$and": [ main_condition , { "$or": query_list } ] } )
     total_records = result.count()
-    for service in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
-        services.append(service)
-    return services, total_records
+    for timer in result.sort("_id", -1).limit(kwargs.get('table_rows')).skip(kwargs.get('offset')):
+        timers.append(timer)
+    return timers, total_records
 
 # FOR THE SORTING
 def Sorting(*args, **kwargs):
-    services = []
+    timers = []
 
-    if kwargs.get('user_type') == "SPCAe":
-        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('owner') ) } )
-    else:
-        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('current_user') ) } )
+    main_query = mongo.db.timers.find({'caseId': ObjectId(kwargs.get('caseId'))})
 
     # take the value from list 
     total_records = main_query.count()
-    for service in main_query.sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
-        services.append(service)
-    return services, total_records
+    for timer in main_query.sort( kwargs.get('sortingKey'), kwargs.get('sortingValue') ).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        timers.append(timer)
+    return timers, total_records
 
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
-    services = []
-
-    if kwargs.get('user_type') == "SPCAe":
-        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('owner') ) } )
-    else:
-        main_query = mongo.db.services.find( { 'serviceOwner': ObjectId( kwargs.get('current_user') ) } )
-
+    timers = []
+    main_query = mongo.db.timers.find({'caseId': ObjectId(kwargs.get('caseId'))})
     total_records = main_query.count()
-    for service in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
-        services.append(service)
-    return services, total_records
+    for timer in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
+        timers.append(timer)
+    return timers, total_records
 
 # ******************************** END OF FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
 
@@ -247,7 +220,7 @@ class CaseTimersList(Resource):
         count = page-1
         offset = table_rows*count
     
-        main_query = mongo.db.timers.find({'caseId': ObjectId(ObjectId(caseId))})
+        main_query = mongo.db.timers.find({'caseId': ObjectId(caseId) })
 
         total_records = main_query.count()
         for timer in main_query.sort("_id", -1).limit(table_rows).skip(offset):
@@ -257,20 +230,19 @@ class CaseTimersList(Resource):
         return {'timers': json.loads(json.dumps(timers, default=json_util.default)), 'total_records': total_records, 'page' : page}
 
     @jwt_required
-    def post(self, page):
+    def post(self, page, caseId):
         current_user = get_jwt_identity()
         user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         data = request.get_json()
         table_rows = app.config['MAX_TABLE_ROWS']
-        services = []
+        timers = []
         count = page-1
         offset = table_rows*count
         value  = {
             "current_user": current_user,
             "table_rows": table_rows,
             "offset": offset,
-            "user_type": user_details.get('user_type'),
-            "owner": user_details.get('owner')
+            "caseId": caseId
         }
 
         # for all three , search, filter and sorting
@@ -278,45 +250,45 @@ class CaseTimersList(Resource):
             value['filters'] = data.get('filters')
             value['search_keyword'] = data.get('keyword')
             search_filter_sorting_result = SearchandFilterandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
-            return {'services': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
 
         # for search and sorting
         elif data.get('keyword') and data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
             value['search_keyword'] = data.get('keyword')
             search_filter_sorting_result = SearchandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
-            return {'services': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}
 
         # for filter and sorting 
         elif len(data.get('filters')) and data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
             value['filters'] = data.get('filters')
             search_filter_sorting_result = FilterandSorting( **value, **data.get('sorting') ) # SearchandFilter is the function defined above 
-            return {'services': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}   
+            return {'timers': json.loads(json.dumps(search_filter_sorting_result[0], default=json_util.default)), 'total_records': search_filter_sorting_result[1], 'page' : page}   
 
         # this is for, incase there are both search and filters
         elif data.get('keyword') and len(data.get('filters')) > 0:
             value['filters'] = data.get('filters')
             value['search_keyword'] = data.get('keyword')
             search_filter_result = SearchandFilter( **value ) # SearchandFilter is the function defined above 
-            return {'services': json.loads(json.dumps(search_filter_result[0], default=json_util.default)), 'total_records': search_filter_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(search_filter_result[0], default=json_util.default)), 'total_records': search_filter_result[1], 'page' : page}
         
         # if there is only search    
         elif data.get('keyword'):
             value['search_keyword'] = data.get('keyword')
             search_result = Search( **value ) # Search is the function defined above 
-            return {'services': json.loads(json.dumps(search_result[0], default=json_util.default)), 'total_records': search_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(search_result[0], default=json_util.default)), 'total_records': search_result[1], 'page' : page}
 
         # if there is only filter   
         elif len(data.get('filters')) > 0:
             value['filters'] = data.get('filters')
             filter_result = Filter( **value ) # Filter is the function defined above 
-            return {'services': json.loads(json.dumps(filter_result[0], default=json_util.default)), 'total_records': filter_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(filter_result[0], default=json_util.default)), 'total_records': filter_result[1], 'page' : page}
         
         # if there is only sorting
         elif data.get('sorting')['sortingKey'] and data.get('sorting')['sortingValue']:
             sorting_result = Sorting( **value, **data.get('sorting') ) # Sorting is the function defined above
-            return {'services': json.loads(json.dumps(sorting_result[0], default=json_util.default)), 'total_records': sorting_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(sorting_result[0], default=json_util.default)), 'total_records': sorting_result[1], 'page' : page}
 
         # if there is no filter and search or default
         else:
             initial_result = InitialRecords( **value ) # Filter is the function defined above 
-            return {'services': json.loads(json.dumps(initial_result[0], default=json_util.default)), 'total_records': initial_result[1], 'page' : page}
+            return {'timers': json.loads(json.dumps(initial_result[0], default=json_util.default)), 'total_records': initial_result[1], 'page' : page}

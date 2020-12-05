@@ -21,8 +21,8 @@ class Transfer(Resource):
     def post(self):
         data = request.get_json()
         transfer = stripe.Transfer.create(
-            amount=int(data['amount'])*100,
-            currency=data['currency'],
+            amount=int(data['total_payable_amount_converted'])*100,
+            currency="usd",
             destination=data['destination'],
             metadata= { 
                 'caseId': data['caseId'],

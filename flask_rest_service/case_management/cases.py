@@ -410,13 +410,13 @@ class RequestCaseCompletion(Resource):
                     'status': "Request-Completion"
                 }
             })
-        notification_values = {
-            "title" : "A case forwarded by super-admin has been received",
-            "sender": ObjectId(current_user),
-            "receiver": ObjectId(case_details.get('client')),
-            "link": f"/user/case/{id}"
-        } 
-        InsertNotifications(**notification_values)
+        # notification_values = {
+        #     "title" : "A case forwarded by super-admin has been received",
+        #     "sender": ObjectId(current_user),
+        #     "receiver": ObjectId(case_details.get('client')),
+        #     "link": f"/user/case/{id}"
+        # } 
+        # InsertNotifications(**notification_values)
         return { "message" : "Completion request made sucessfully" }, 200
 
 class ConfirmCaseCompletion(Resource):

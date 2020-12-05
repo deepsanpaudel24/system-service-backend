@@ -62,3 +62,25 @@ class Onboard_user_refresh(Resource):
         account_link_url = _generate_account_link(account_id, origin)
         return redirect(account_link_url)
 
+
+class UserStripeAccInfo(Resource):
+    @jwt_required
+    def get(self):
+        current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id':ObjectId(current_user)})
+        
+        if user.get('stripe_account_id') is not None:
+            stripe_acc_id = user.get('stripe_account_id')
+            resp = stripe.Account.retrieve(stripe_acc_id)
+
+            if not resp.get('details_submitted'):
+                account_link_url = _generate_account_link(stripe_acc_id)
+                try:
+                    resp['url']=account_link_url
+                    return resp
+                except Exception as e:
+                    return jsonify(error=str(e)), 403
+
+            return resp
+        return jsonify({'showOnboard':True})
+

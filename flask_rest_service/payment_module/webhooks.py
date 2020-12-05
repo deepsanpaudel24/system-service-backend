@@ -17,22 +17,36 @@ webhook_signing_secret = 'whsec_eSTZV9YteFfUv1inEile2LRE5xlg6quk'
 
 def InsertCheckoutRecords(result):
     metadata = result['metadata']
-    id = mongo.db.checkout_transactions.insert( {
-        'clientId': ObjectId(metadata['clientId']),
-        'clientName': metadata['clientName'],
-        'caseId': ObjectId(metadata['caseId']),
-        'caseTitle': metadata['caseTitle'],
-        'paid_amount': int(result['amount_total']/100),
-        'due_amount': float(metadata['total_amount']) - int(result['amount_total'])/100,
-        'currency': metadata['humanize_currency'],
-        'status': "completed",
-        'payment_intent_id': result['payment_intent'],
-        'payment_date': datetime.now().strftime("%B %d, %Y %H:%M:%S")
-    })
+    if result['mode'] == "subscription":
+        id = mongo.db.checkout_transactions.insert ( {
+            'clientId': ObjectId(metadata['current_user']),
+            'paid_amount': int(result['amount_total']/100),
+            'status': "completed",
+            'payment_intent_id': result['payment_intent'],
+            'mode': result['mode'],
+            'received': True,
+            'currency': "usd",
+            'payment_date': datetime.now().strftime("%B %d, %Y %H:%M:%S")
+        } )
+    else:
+        id = mongo.db.checkout_transactions.insert( {
+            'clientId': ObjectId(metadata['clientId']),
+            'clientName': metadata['clientName'],
+            'caseId': ObjectId(metadata['caseId']),
+            'caseTitle': metadata['caseTitle'],
+            'paid_amount': int(result['amount_total']/100),
+            'due_amount': (float(metadata['total_amount']) - int(result['amount_total'])/100)- float(metadata['advance_amount']),
+            'currency': metadata['humanize_currency'],
+            'status': "completed",
+            'received': True,
+            'mode': result['mode'],
+            'payment_intent_id': result['payment_intent'],
+            'payment_date': datetime.now().strftime("%B %d, %Y %H:%M:%S")
+        })
 
 def InsertTransferRecords(result):
     metadata = result['metadata']
-    id = mongo.db.transfer_transactions.insert( {
+    id = mongo.db.checkout_transactions.insert( {
         'serviceProviderId': ObjectId(metadata['spId']),
         'serviceProviderName': metadata['spName'],
         'caseId': ObjectId(metadata['caseId']),
@@ -40,6 +54,8 @@ def InsertTransferRecords(result):
         'paid_amount': int(result['amount']/100),
         'currency': result['currency'],
         'transfer_id': result['id'],
+        'received': False,
+        'mode': "payment",
         'status': "completed",
         'payment_date': datetime.now().strftime("%B %d, %Y %H:%M:%S")
     })
@@ -96,11 +112,18 @@ def UpdateTransferStatusPaid(result):
 
 # function to update the expiry date of the user
 def UpdateExpiryDate(current_user):
+    # If the user has child accounts, gotta update their expiry dates as well...
     user_details = mongo.db.users.find_one( { '_id' : ObjectId(current_user)} )
     expiry_date = user_details.get('expiryDate')
     #expiryDate = createdDate + timedelta(days=(1*7)) 
     new_expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d') + timedelta(days=(1*365)) 
     mongo.db.users.update_one( {'_id': ObjectId(current_user) }, {
+                '$set': {
+                'expiryDate': new_expiry_date.strftime('%Y-%m-%d')
+            }
+        })
+
+    mongo.db.users.update( {'owner': ObjectId(current_user) }, {
                 '$set': {
                 'expiryDate': new_expiry_date.strftime('%Y-%m-%d')
             }
@@ -127,9 +150,15 @@ class Webhook(Resource):
         if event["type"] == "checkout.session.completed":
             result = event['data']['object']
             metadata = result['metadata']
+
+            # the mode of payment is subscription if the user is doing checkout for their subscription
             if result['mode'] == "subscription":
                 current_user = metadata['current_user']
+
+                # Needs to update the user's employee account as well
                 UpdateExpiryDate(current_user)
+                # Insert the record of subscription payments in the database 
+                InsertCheckoutRecords(result)
             else:
                 # step1: insert transactions record in database collection checkout_transactions
                 InsertCheckoutRecords(result)

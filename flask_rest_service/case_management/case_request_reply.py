@@ -1,5 +1,6 @@
 from flask_rest_service import app, api, mongo
 #from main import app, api, mongo, mail
+import requests
 from flask_restful import Resource, request, reqparse, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from bson.objectid import ObjectId
@@ -88,6 +89,32 @@ class ReplyCaseRequest(Resource):
             dirToSaveFile = '/'.join(app.config['UPLOAD_FOLDER'].split('/')[1:])
             filesLocationList.append(f"{dirToSaveFile}/{filename}")
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+
+        # get the currency conversion rate and then store it in the proposal details.
+        sp_base_currency = data['rate'].split(' ')[-1]
+        if sp_base_currency == "pound":
+            base_currency = "gbp"
+            key="GBPUSD"
+            params1 = {"pairs" : "GBPUSD"}
+            params2 = {"base" : "GBP", "symbols": "USD"}
+        elif sp_base_currency == "euro":
+            base_currency = "eur"
+            key="EURUSD"
+            params1 = {"pairs" : "EURUSD"}
+            params2 = {"base" : "EUR", "symbols": "USD"}
+        else :
+            base_currency = "usd"
+            key="USDUSD"
+            params1 = {"pairs" : "USDUSD"}
+            params2 = {"base" : "USD", "symbols": "USD"}
+
+        # Sending get request to get the conversion rate
+        resp1 = requests.get('https://www.freeforexapi.com/api/live', params=params1)
+        conversion_rate = resp1.json()['rates'][key]['rate']
+        if resp1.status_code != 200:
+            resp2 = requests.get('https://api.exchangerate.host/latest', params=params2)
+            conversion_rate = resp2.json()['rates']['USD']
 
         id = mongo.db.proposals.insert({
             'title': data['title'],
@@ -101,6 +128,7 @@ class ReplyCaseRequest(Resource):
             'serviceProvidername': user.get('name'),
             'paymentType': data['paymentType'],
             'advancePayment': data['advancePayment'],
+            'conversion_rate': conversion_rate,
             'files': filesLocationList,
             'sentDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection proposals   
@@ -188,6 +216,7 @@ class PropsalDetails(Resource):
                         'rate': proposal.get('rate'),
                         'paymentType':proposal.get('paymentType'),
                         'advancePayment':proposal.get('advancePayment'),
+                        'conversion_rate': proposal.get('conversion_rate')
                     }
                 })
                 # Send notifiations to the service providers with the message saying their proposal has been accepted
