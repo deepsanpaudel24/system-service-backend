@@ -369,7 +369,7 @@ api.add_resource(InitialChatMessage, '/api/v1/chat-initial-message/<room>')
 api.add_resource(OldChatMessages, '/api/v1/chat-more-message/<room>')
 
 api.add_resource(create_checkout_session, '/api/v1/create-checkout-session')
-api.add_resource(create_subscription_checkout_session, '/api/v1/create-subscription-checkout-session')
+api.add_resource(create_subscription_checkout_session, '/api/v1/create-subscription-checkout-session/<type>')
 api.add_resource(Webhook, '/api/v1/webhooks')
 api.add_resource(Onboard_user, '/api/v1/onboard')
 api.add_resource(Onboard_user_refresh, '/api/v1/onboard-user/refresh')

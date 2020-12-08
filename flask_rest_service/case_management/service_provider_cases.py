@@ -12,6 +12,8 @@ import json
 from bson import json_util
 from datetime import datetime, timedelta
 
+# Function to check if the user and its employee has fowarded the proposal to any specific case
+
 # ******************************** FUNCTION FOR THE DATABASE TABLE  ******************************************************* # 
 
 # FOR SEARCH AND FILTER AND SORTING
@@ -29,7 +31,12 @@ def SearchandFilterandSorting(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] } 
 
     result = mongo.db.cases.find( 
@@ -60,7 +67,12 @@ def SearchandSorting(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
@@ -99,7 +111,12 @@ def FilterandSorting(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
 
     result = mongo.db.cases.find ( 
@@ -129,7 +146,12 @@ def SearchandFilter(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
     
     result = mongo.db.cases.find( 
@@ -159,7 +181,12 @@ def Search(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
     # regex query to find the words in the table 
     # below query find the records in the table where email begins with the keyword coming from the user input
@@ -191,7 +218,12 @@ def Filter(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
     # take the value from list 
     query_list = []
@@ -215,7 +247,12 @@ def Sorting(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_condition = { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] }
     # take the value from list 
     total_records = mongo.db.cases.find ( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).count()
@@ -233,7 +270,12 @@ def InitialRecords(*args, **kwargs):
     condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # condition to check if the case that has the current user listed in the forwardTo has not been to progress
     # This is because the cases that are in progress cannot be seen by other service providers
-    condition_two = {"$or" : [{"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"}}]}
+    condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
     main_query = mongo.db.cases.find( { "$or": [ {'client': ObjectId(kwargs.get('current_user'))}, {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('current_user'))}]} ] } )
     total_records = main_query.count()
     for case in main_query.sort("_id", -1).limit( kwargs.get('table_rows') ).skip( kwargs.get('offset') ):
@@ -259,11 +301,35 @@ class ServiceProviderCases(Resource):
         condition_one = {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } }
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
-        condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
+        # condition_two = { "status": 
+        #                         { "$nin" : [
+        #                                 "On-progress",
+        #                                 "Awaiting-Advance-Payment",
+        #                                 "Closed"
+        #                             ] 
+        #                         } 
+        #                 }
+        condition_two = { "$or" : [ 
+                                    {"status": "Requested" },
+                                    {"status": "Forwarded" },
+                                    {"status": "Proposal-Forwarded" }, 
+                                ] 
+                        }
         main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(current_user)}]} )
 
         total_records = main_query.count()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         for case in main_query.sort("_id", -1).limit(table_rows).skip(offset):
+            # check if the case has status Proposal-Forwarded, then check if the current user has proposal forwareded to the client.
+            if case.get('status') == "Proposal-Forwarded":
+                if user.get('user_type') == "SPCAe":
+                    proposal = mongo.db.proposals.find_one({'caseId': ObjectId(case.get('_id')), 'serviceProvider': ObjectId(user.get('owner'))})
+                else:
+                    proposal = mongo.db.proposals.find_one({'caseId': ObjectId(case.get('_id')), 'serviceProvider': ObjectId(current_user)})
+                if proposal:
+                    case['status'] = "Proposal-Forwarded"
+                else:
+                    case['status'] = "Forwarded"
             cases.append(case)
         return {'cases': json.loads(json.dumps(cases, default=json_util.default)), 'total_records': total_records, 'page' : page}
 

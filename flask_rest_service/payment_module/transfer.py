@@ -31,6 +31,9 @@ class Transfer(Resource):
                 'clientName': data['clientName'],
                 'spId': data['spId'],
                 'spName': data['spName'],
+                'conversion_rate': data['conversion_rate'],
+                'commission_rate': data['commission_rate'],
+                'application_fee': float(data['application_fee'])*float(data['conversion_rate'])
             }
         )
         return {'message':'Transfer successfull'}, 200

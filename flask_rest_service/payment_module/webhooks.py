@@ -53,13 +53,15 @@ def InsertTransferRecords(result):
         'caseTitle': metadata['caseTitle'],
         'paid_amount': int(result['amount']/100),
         'currency': result['currency'],
+        'conversion_rate': metadata['conversion_rate'],
+        'commission_rate': metadata['commission_rate'],
+        'application_fee': metadata['application_fee'],
         'transfer_id': result['id'],
         'received': False,
         'mode': "payment",
         'status': "completed",
         'payment_date': datetime.now().strftime("%B %d, %Y %H:%M:%S")
     })
-
 # function to update the case status to on-progress if it is Awaiting-Advance-Payment
 def UpdateCaseStatus(result):
     metadata = result['metadata']
@@ -82,12 +84,11 @@ def UpdateCaseStatus(result):
 def UpdateCaseToClosed(result):
     metadata = result['metadata']
     case_details = mongo.db.cases.find_one ( { '_id': ObjectId(metadata['caseId']) } )
-    if case_details.get('status') == "Client-Final-Installment-Paid":
-        mongo.db.cases.update_one({'_id': ObjectId(metadata['caseId']) }, {
-                    '$set': {
-                    'status': "Closed"
-                }
-            })
+    mongo.db.cases.update_one({'_id': ObjectId(metadata['caseId']) }, {
+                '$set': {
+                'status': "Closed"
+            }
+        })
 
 # function to update the case status to on-progress if it is Awaiting-Advance-Payment
 def UpdateTransferStatusReversed(result):
@@ -111,12 +112,15 @@ def UpdateTransferStatusPaid(result):
         })
 
 # function to update the expiry date of the user
-def UpdateExpiryDate(current_user):
+def UpdateExpiryDate(current_user, subscribe_type):
     # If the user has child accounts, gotta update their expiry dates as well...
     user_details = mongo.db.users.find_one( { '_id' : ObjectId(current_user)} )
     expiry_date = user_details.get('expiryDate')
     #expiryDate = createdDate + timedelta(days=(1*7)) 
-    new_expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d') + timedelta(days=(1*365)) 
+    if subscribe_type == "monthly":
+        new_expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d') + timedelta(days=(1*30))
+    else: 
+        new_expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d') + timedelta(days=(1*365)) 
     mongo.db.users.update_one( {'_id': ObjectId(current_user) }, {
                 '$set': {
                 'expiryDate': new_expiry_date.strftime('%Y-%m-%d')
@@ -154,9 +158,10 @@ class Webhook(Resource):
             # the mode of payment is subscription if the user is doing checkout for their subscription
             if result['mode'] == "subscription":
                 current_user = metadata['current_user']
+                subscribe_type = metadata['subscribe_type']
 
                 # Needs to update the user's employee account as well
-                UpdateExpiryDate(current_user)
+                UpdateExpiryDate(current_user, subscribe_type)
                 # Insert the record of subscription payments in the database 
                 InsertCheckoutRecords(result)
             else:

@@ -90,8 +90,10 @@ class EmployeeRegister(Resource):
                 employee_existence = mongo.db.users.find_one({'email': data['email']})
                 if employee_existence:
                     return {"message": "Email already registered in the system"}, 400
+                username = data['email'].split('@')[0]
                 id = mongo.db.users.insert({
                     'email': data['email'],
+                    'username': username,
                     'password':'',
                     'user_type':user.get("user_type") + "e",
                     'is_verified': False,
@@ -167,7 +169,7 @@ def SearchandFilterandSorting(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -193,7 +195,7 @@ def SearchandSorting(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -246,7 +248,7 @@ def SearchandFilter(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -272,7 +274,7 @@ def Search(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 

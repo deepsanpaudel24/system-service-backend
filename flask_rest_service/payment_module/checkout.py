@@ -9,7 +9,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 # See your keys here: https://dashboard.stripe.com/account/apikeys
 
 stripe.api_key = 'sk_test_51HrMHgE8BAcK1TWiC1rrReLpfQm05TZvk5c0hfIlnuVZp2sTp78CANnR6QTfz3snvPHXlEfZKwc7gyzBkW0sX1CP00uNx2v3X2'
-price_Id = "price_1HtFJGE8BAcK1TWiHmx4pGyD" 
+annual_price_Id = "price_1HtFJGE8BAcK1TWiHmx4pGyD" 
+monthly_price_Id = "price_1Htte8E8BAcK1TWix7tlY3q6"
 
 
 def CalulateAdvancePaymentAmount(*args, **kwargs):
@@ -105,7 +106,11 @@ class create_checkout_session(Resource):
 
 class create_subscription_checkout_session(Resource):
     @jwt_required
-    def post(self):
+    def post(self, type):
+        if type == "monthly":
+            price_Id = monthly_price_Id
+        else:
+            price_Id = annual_price_Id
         current_user = get_jwt_identity()
         user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user)} )
         if user_details.get('user_type') == "SPCA" or user_details.get('user_type') == "CCA":
@@ -122,7 +127,8 @@ class create_subscription_checkout_session(Resource):
                 }],
             metadata= { 
                 'current_user': current_user,
-                'clientName': user_details.get('name')
+                'clientName': user_details.get('name'),
+                'subscribe_type': type
             },
             mode="subscription",
             success_url='http://localhost:3000/user/home',

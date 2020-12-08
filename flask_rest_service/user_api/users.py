@@ -99,8 +99,10 @@ class UserRegister(Resource):
                 return {
                     "message": "Email already exists in the system."
                 }, 409
+            username = data['email'].split('@')[0]
             id = mongo.db.users.insert({
                 'email': data['email'],
+                'username': username,
                 'password':_hased_password,
                 'user_type':"UVU",
                 'is_verified': False,

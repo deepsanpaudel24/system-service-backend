@@ -205,6 +205,7 @@ class PropsalDetails(Resource):
             })
             if accepted_value == True:
                 # advancePayment is the amount of percentage of advance payment of total amount 
+                
                 mongo.db.cases.update_one({'_id': ObjectId(proposal.get('caseId'))}, {
                     '$set': {
                         'serviceProvider': ObjectId(proposal.get('serviceProvider')),
@@ -227,6 +228,35 @@ class PropsalDetails(Resource):
                     "link": f"/user/case/{ObjectId(proposal.get('caseId'))}"
                 } 
                 InsertNotifications(**notification_values)
+
+                # Now after this proposal has been accepted, the others proposal should be auto declined. 
+                # Declining a proposal means, other all proposals for this case has be be set declined in their status and
+                # the other service providers to whom this case was forwarded by super admin 
+                # except the one whose proposal got accepted should be notified that the client has accepted some other service providers 
+                # proposal.
+                mongo.db.proposals.update( { "$and": [ {'caseId': ObjectId(proposal.get('caseId') ) }, { '_id' : { "$ne": ObjectId(proposalId) } } ] }, {
+                    '$set': {
+                        'accepted': False,
+                        'status': "Declined"
+                    }
+                })
+
+                case_details = mongo.db.cases.find_one ( { '_id': ObjectId( proposal.get('caseId') ) } )
+
+                forwarded_service_providers = case_details.get('forwardTo')
+                for sp in forwarded_service_providers:
+                    if sp == proposal.get('serviceProvider'):
+                        print("Avoid this service provider with id", proposal.get('serviceProvider'))
+                    else:
+                        # Send notifiations to the service providers with the message saying their proposal has been accepted
+                        notification_values = {
+                            "title" : f"Your proposal has been declined for the case {case_details.get('title')}",
+                            "sender": ObjectId(current_user),
+                            "receiver": ObjectId(sp),
+                            "link": f"/user/cases"
+                        } 
+                        InsertNotifications(**notification_values)
+
             return {"message": accepted_value}
         return {
             "message": "You are not authorized to take action"

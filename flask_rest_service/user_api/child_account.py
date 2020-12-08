@@ -27,7 +27,7 @@ def SearchandFilterandSorting(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -53,7 +53,7 @@ def SearchandSorting(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -106,7 +106,7 @@ def SearchandFilter(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
@@ -132,7 +132,7 @@ def Search(*args, **kwargs):
         {"$and": [ 
                     { 'owner': ObjectId ( kwargs.get('current_user') ) }, 
                     { "$or": [ 
-                                { "email": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
+                                { "username": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } , 
                                 { "name": { "$regex": f".*{kwargs.get('search_keyword')}.*" , "$options" : "i" } } , 
                                 { "createdDate": { "$regex": f".*{kwargs.get('search_keyword')}.*" } } 
                             ] 
