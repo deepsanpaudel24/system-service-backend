@@ -298,6 +298,7 @@ class PeopleRegister(Resource):
                     'user_type':"UVU",
                     'is_verified': False,
                     'invited_by': ObjectId(current_user),
+                    'commission': "5",
                     'profile_basic_completion': False,
                     'profile_detailed_completion': False,
                     'profile_billing_completion': False,

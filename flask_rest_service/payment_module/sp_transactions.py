@@ -269,7 +269,10 @@ class SPCaseTransactions(Resource):
         current_user = get_jwt_identity()
         user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
         transactions = []
-        main_query = mongo.db.checkout_transactions.find({'serviceProviderId': ObjectId(current_user), 'caseId': ObjectId(caseId)})
+        if user_details.get('user_type') == "SPCAe":
+            main_query = mongo.db.checkout_transactions.find({'serviceProviderId': ObjectId(user_details.get('owner')), 'caseId': ObjectId(caseId)})
+        else:
+            main_query = mongo.db.checkout_transactions.find({'serviceProviderId': ObjectId(current_user), 'caseId': ObjectId(caseId)})
         for transaction in main_query.sort("_id", -1):
             transactions.append(transaction)
         return {'transactions': json.loads(json.dumps(transactions, default=json_util.default))}

@@ -68,7 +68,6 @@ class UserStripeAccInfo(Resource):
     def get(self):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id':ObjectId(current_user)})
-        
         if user.get('stripe_account_id') is not None:
             stripe_acc_id = user.get('stripe_account_id')
             resp = stripe.Account.retrieve(stripe_acc_id)
@@ -83,4 +82,19 @@ class UserStripeAccInfo(Resource):
 
             return resp
         return jsonify({'showOnboard':True})
+
+# to let the super admin know if the service provider can receive the payment
+class SPStripeAccInfo(Resource):
+    @jwt_required
+    def get(self, spId):
+        user = mongo.db.users.find_one({'_id':ObjectId(spId)})
+        if user.get('stripe_account_id') is not None:
+            stripe_acc_id = user.get('stripe_account_id')
+            resp = stripe.Account.retrieve(stripe_acc_id)
+
+            if not resp.get('details_submitted'):
+                return {"message": "Service Providers has not submitted all the required information to accept payment."}, 400
+
+            return resp, 200
+        return {"message": "Service providers has not onboarded on stripe yet." }, 404
 

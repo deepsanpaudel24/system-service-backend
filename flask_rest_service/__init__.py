@@ -257,7 +257,7 @@ from flask_rest_service.communication import socketio, InitialChatMessage, OldCh
 
 from flask_rest_service.payment_module import ( create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, 
                                                 create_subscription_checkout_session, CheckoutTransactions, ClientCaseTransactions, SATransactions,
-                                                SACaseTransactions, UserStripeAccInfo, SPTransactions, SPCaseTransactions
+                                                SACaseTransactions, UserStripeAccInfo, SPTransactions, SPCaseTransactions, SPStripeAccInfo
                                             )
 
 
@@ -382,3 +382,4 @@ api.add_resource(SACaseTransactions, '/api/v1/sa-case-transactions/<caseId>')
 api.add_resource(SPTransactions, '/api/v1/sp-transactions/<int:page>')
 api.add_resource(SPCaseTransactions, '/api/v1/sp-case-transactions/<caseId>')
 api.add_resource(UserStripeAccInfo, '/api/v1/user/stripe-acc-info')
+api.add_resource(SPStripeAccInfo, '/api/v1/sadmin/check-sp-stripe/<spId>')

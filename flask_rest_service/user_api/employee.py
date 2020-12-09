@@ -98,6 +98,7 @@ class EmployeeRegister(Resource):
                     'user_type':user.get("user_type") + "e",
                     'is_verified': False,
                     'owner': ObjectId(current_user),
+                    'commission': "5",
                     'profile_basic_completion': False,
                     'profile_detailed_completion': True,
                     'profile_billing_completion': True,

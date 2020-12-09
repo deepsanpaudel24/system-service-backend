@@ -387,6 +387,7 @@ class ClientRegister(Resource):
                     'profile_basic_completion': False,
                     'profile_detailed_completion': False,
                     'profile_billing_completion': True,
+                    'commission': "5",
                     'logout': True,
                     'createdDate': createdDate.strftime('%Y-%m-%d'),
                     'expiryDate': expiryDate.strftime('%Y-%m-%d')

@@ -105,6 +105,7 @@ class UserRegister(Resource):
                 'username': username,
                 'password':_hased_password,
                 'user_type':"UVU",
+                'commission': "5",
                 'is_verified': False,
                 'profile_basic_completion': False,
                 'profile_detailed_completion': False,

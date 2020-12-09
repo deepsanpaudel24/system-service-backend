@@ -1,6 +1,6 @@
 from flask_rest_service.payment_module.checkout import create_checkout_session, create_subscription_checkout_session
 from flask_rest_service.payment_module.webhooks import Webhook
-from flask_rest_service.payment_module.onboard import Onboard_user, Onboard_user_refresh, UserStripeAccInfo
+from flask_rest_service.payment_module.onboard import Onboard_user, Onboard_user_refresh, UserStripeAccInfo, SPStripeAccInfo
 from flask_rest_service.payment_module.transfer_info import TransferInfo
 from flask_rest_service.payment_module.transfer import Transfer
 from flask_rest_service.payment_module.client_transactions import CheckoutTransactions, ClientCaseTransactions
