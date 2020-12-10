@@ -583,6 +583,13 @@ class CreateClientCase(Resource):
             userType = "c"
         else:
             userType = "sp"
+
+        assigned_emp_list  = {}
+        # Incase if the employee is adding the case manually on behalf of admin
+        if user.get('user_type') == "SPCAe":
+            current_user = user.get('owner')
+            assigned_emp_list = [ObjectId(get_jwt_identity())]
+
         caseTags = data['caseTags'].split(',')
 
         myFiles = request.files
@@ -613,6 +620,7 @@ class CreateClientCase(Resource):
             'clientName': client.get('name'),
             'files': filesLocationList,
             'type': "manual",
+            'assigned_employee_list': assigned_emp_list,
             'requestedDate': datetime.today().strftime('%Y-%m-%d')
         })                           # insert the data in the collection cases    
 
