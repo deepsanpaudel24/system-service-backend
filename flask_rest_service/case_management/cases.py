@@ -304,7 +304,46 @@ class ClientCasesDetails(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SA" or user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CCAe":
+            case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+            listOfUserId = []
+            listOfUserId.append(case_details.get('serviceProvider'))
+            listOfUserId.append(case_details.get('client'))
+            if case_details.get('assigned_employee_list'):
+                listOfUserId.extend(case_details.get('assigned_employee_list'))
+
+            if case_details.get('status') == 'Requested' or case_details.get('status') == 'Forwarded' or case_details.get('status') == 'Proposal-Forwarded':
+                if case_details.get('forwardTo'):
+                    listOfUserId.extend(case_details.get('forwardTo'))
+            if user.get('user_type') == "CCAe" and user.get('caseManagement'):
+                listOfUserId.append(ObjectId(current_user))
+            if case_details and ObjectId(current_user) in listOfUserId:
+                case_details['logged_in_user_name'] = user.get('name')
+                case_details['logged_in_user_id'] = user.get('_id')
+                result  = list(mongo.db.users.find(
+                    { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                    ))
+                for service_provider in result:
+                    main_query = mongo.db.cases.find( {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(service_provider.get('_id')) } } } )
+                    total_records = main_query.count()
+                    service_provider['no_forwarded_cases'] = total_records
+                for service_provider in result:
+                    main_query = mongo.db.cases.find( { "$and": [ {'serviceProvider': ObjectId(service_provider.get('_id'))} , {"status": "On-progress"} ] } )
+                    total_records = main_query.count()
+                    service_provider['no_progress_cases'] = total_records
+                forwardedSP_list = []
+                if "forwardTo" in case_details:
+                    forwardedSP_list = mongo.db.users.find({
+                        "_id" : { "$in": case_details.get('forwardTo') }
+                    })
+                response = {
+                    "case_details": case_details,
+                    "matchingServiceProviders": result,
+                    "forwardedSP_list": forwardedSP_list
+                }
+                return json.loads(dumps(response))
+            return {"message": "Case details not found"}, 404
+        elif user.get('user_type') == "SA":
             case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
             case_details['logged_in_user_name'] = user.get('name')
             case_details['logged_in_user_id'] = user.get('_id')
@@ -329,8 +368,47 @@ class ClientCasesDetails(Resource):
                 "matchingServiceProviders": result,
                 "forwardedSP_list": forwardedSP_list
             }
-
             return json.loads(dumps(response))
+        elif user.get('user_type') == "SAe":
+            case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
+            listOfUserId = []
+            listOfUserId.append(case_details.get('serviceProvider'))
+            listOfUserId.append(case_details.get('client'))
+            if case_details.get('assigned_employee_list'):
+                listOfUserId.extend(case_details.get('assigned_employee_list'))
+
+            if case_details.get('status') == 'Requested' or case_details.get('status') == 'Forwarded' or case_details.get('status') == 'Proposal-Forwarded':
+                if case_details.get('forwardTo'):
+                    listOfUserId.extend(case_details.get('forwardTo'))
+            if user.get('user_type') == "SAe" and user.get('caseManagement'):
+                listOfUserId.append(ObjectId(current_user))
+
+            if case_details and ObjectId(current_user) in listOfUserId:
+                case_details['logged_in_user_name'] = user.get('name')
+                case_details['logged_in_user_id'] = user.get('_id')
+                result  = list(mongo.db.users.find(
+                    { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                    ))
+                for service_provider in result:
+                    main_query = mongo.db.cases.find( {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(service_provider.get('_id')) } } } )
+                    total_records = main_query.count()
+                    service_provider['no_forwarded_cases'] = total_records
+                for service_provider in result:
+                    main_query = mongo.db.cases.find( { "$and": [ {'serviceProvider': ObjectId(service_provider.get('_id'))} , {"status": "On-progress"} ] } )
+                    total_records = main_query.count()
+                    service_provider['no_progress_cases'] = total_records
+                forwardedSP_list = []
+                if "forwardTo" in case_details:
+                    forwardedSP_list = mongo.db.users.find({
+                        "_id" : { "$in": case_details.get('forwardTo') }
+                    })
+                response = {
+                    "case_details": case_details,
+                    "matchingServiceProviders": result,
+                    "forwardedSP_list": forwardedSP_list
+                }
+                return json.loads(dumps(response))
+            return {"message": "Case details not found"}, 404
         return {"message" : "You are not authorized to view this page"}, 403
 
 
@@ -340,14 +418,29 @@ class ServiceProviderCasesDetails(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
+        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPCAe":
             case_details = mongo.db.cases.find_one({'_id': ObjectId(id)})
-            client = mongo.db.users.find_one({'_id': ObjectId(case_details.get('client'))})
-            case_details['intro_video'] = client.get('intro_video')
-            case_details['intro_text'] = client.get('intro_text')
-            case_details['logged_in_user_name'] = user.get('name')
-            case_details['logged_in_user_id'] = user.get('_id')
-            return json.loads(json.dumps(case_details, default=json_util.default))
+            listOfUserId = []
+            listOfUserId.append(case_details.get('serviceProvider'))
+            listOfUserId.append(case_details.get('client'))
+            if user.get('user_type') == "SPCAe" and user.get('caseManagement'):
+                listOfUserId.append(ObjectId(current_user))
+            if case_details.get('assigned_employee_list'):
+                listOfUserId.extend(case_details.get('assigned_employee_list'))
+
+            if case_details.get('status') == 'Requested' or case_details.get('status') == 'Forwarded' or case_details.get('status') == 'Proposal-Forwarded':
+                if case_details.get('forwardTo'):
+                    listOfUserId.extend(case_details.get('forwardTo'))
+            if user.get('user_type') == "SPCAe" and user.get('caseManagement'):
+                listOfUserId.append(ObjectId(current_user))
+            if case_details and ObjectId(current_user) in listOfUserId:
+                client = mongo.db.users.find_one({'_id': ObjectId(case_details.get('client'))})
+                case_details['intro_video'] = client.get('intro_video')
+                case_details['intro_text'] = client.get('intro_text')
+                case_details['logged_in_user_name'] = user.get('name')
+                case_details['logged_in_user_id'] = user.get('_id')
+                return json.loads(json.dumps(case_details, default=json_util.default))
+            return { "message": "Case not found"}, 404
         return {"message" : "You are not authorized to view this page"}, 403
 
 class ForwardCaseRequest(Resource):
@@ -356,7 +449,7 @@ class ForwardCaseRequest(Resource):
         current_user = get_jwt_identity()
         forwardData= _forwardTo_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SA":
+        if user.get('user_type') == "SA" or user.get('user_type') == "SAe":
             serviceProviders = forwardData['service_providers'].split(',')
             serviceProviders = list(map(lambda x: ObjectId(x), serviceProviders))
             mongo.db.cases.update_one({'_id': ObjectId(id)}, {

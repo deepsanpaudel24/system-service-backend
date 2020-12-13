@@ -11,6 +11,8 @@ from datetime import datetime
 import os
 import uuid
 from flask_rest_service.notifications import InsertNotifications
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 _parse = reqparse.RequestParser()
 
@@ -88,7 +90,7 @@ class AddNewCaseRequest(Resource):
         notification_values = {
             "title" : f"A new case has been requested by the client {user.get('name')}",
             "sender": ObjectId(current_user),
-            "receiver": ObjectId("5f7196d7be625540246db3d7"),
+            "receiver": ObjectId(os.getenv('SUPERADMIN_MONGO_ID')),
             "link": f"/sadmin/case/{id}"
         } 
         InsertNotifications(**notification_values)                 

@@ -16,6 +16,8 @@ import werkzeug
 from werkzeug.utils import secure_filename
 from flask_rest_service.notifications import InsertNotifications
 
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 _client_parser =  reqparse.RequestParser()
 
@@ -420,10 +422,10 @@ class ClientEmailConfrimation(Resource):
     def post(self):
         data = _client_parser.parse_args()
         token = s.dumps(data['email'], salt='client-email-confirm')
-        link_react = "http://localhost:3000/user/client/password-setup/{}".format(token)
+        link_react = os.getenv('FRONTEND_DOMAIN')+"/user/client/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = "rukshan.shady@gmail.com",
+            sender = os.getenv('MAIL_USERNAME'),
             recipients=[data['email']],
             body="You have been invited on Service-System. Please open the link to verify and setup your account. {}".format(link_react) 
         )
@@ -463,8 +465,19 @@ class ClientDetails(Resource):
     @jwt_required
     def get(self, clientId):
         current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
         client_details = mongo.db.users.find_one({'_id': ObjectId(clientId)})
-        return json.loads(json.dumps(client_details, default=json_util.default))
+        listOfUserId = []
+        listOfUserId.append(client_details.get('invited_by'))
+        if user.get('user_type') == "SPCAe":
+            if ObjectId(user.get('owner')) in listOfUserId:
+                client_details = mongo.db.users.find_one({'_id': ObjectId(clientId)})
+                return json.loads(json.dumps(client_details, default=json_util.default))
+            return {"message": "You are not authorized to view this page"}, 403
+        elif ObjectId(current_user) in listOfUserId:
+            client_details = mongo.db.users.find_one({'_id': ObjectId(clientId)})
+            return json.loads(json.dumps(client_details, default=json_util.default))
+        return {"message" : "You are not authorized to view this page"}, 403
     
 
 class SendClientsIntakeForm(Resource):
@@ -561,9 +574,14 @@ class SPClientCases(Resource):
     def get(self, clientId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get('user_type') == "SPCAe":
+        if user.get('user_type') == "SPCA":
             cases = []
             for case in mongo.db.cases.find({"$and": [{"client": ObjectId(clientId)}, {"serviceProvider": ObjectId(current_user)}]}).sort("_id", -1):
+                cases.append(case)
+            return json.loads(json.dumps(cases, default=json_util.default))
+        elif user.get('user_type') == "SPCAe":
+            cases = []
+            for case in mongo.db.cases.find({"$and": [{"client": ObjectId(clientId)}, {"serviceProvider": ObjectId(user.get('owner'))}]}).sort("_id", -1):
                 cases.append(case)
             return json.loads(json.dumps(cases, default=json_util.default))
         return {

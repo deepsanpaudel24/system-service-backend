@@ -12,6 +12,8 @@ import json
 from bson import json_util
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 _employee_parser =  reqparse.RequestParser()
 
@@ -117,10 +119,10 @@ class SendEmployeeEmailInvitation(Resource):
     def post(self):
         data = _employee_parser.parse_args()
         token = s.dumps(data['email'], salt='employee-email-confirm')
-        link_react = "http://localhost:3000/user/employee/password-setup/{}".format(token)
+        link_react = os.getenv('FRONTEND_DOMAIN')+"/user/employee/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = "rukshan.shady@gmail.com",
+            sender =os.getenv('MAIL_USERNAME'),
             recipients=[data['email']],
             body="You have been invited on Service-System. Please open the link to verify setup your account. {}".format(link_react) 
         )
@@ -420,8 +422,10 @@ class EmployeeDetails(Resource):
     @jwt_required
     def get(self, id):
         current_user = get_jwt_identity()
-        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SA" or user.get('user_type') == "SPCA" or user.get('user_type') == "CCA":
+        user = mongo.db.users.find_one({'_id': ObjectId(id)})
+        listOfUserId = []
+        listOfUserId.append(user.get('owner'))
+        if ObjectId(current_user) in listOfUserId:
             employee_details = mongo.db.users.find_one({'_id': ObjectId(id)})
             main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(id) } } } )
             total_records = main_query.count()

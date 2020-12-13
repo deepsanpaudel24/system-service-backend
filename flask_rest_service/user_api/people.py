@@ -12,6 +12,9 @@ import json
 from bson import json_util
 from datetime import datetime, timedelta
 
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+
 
 _people_parser =  reqparse.RequestParser()
 
@@ -208,10 +211,20 @@ class PeopleList(Resource):
         peoples = []
         count = page-1
         offset = table_rows*count
-        total_records = mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).count()
-        for people in mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).sort("_id", -1).limit(table_rows).skip(offset):
-            peoples.append(people)
-        return {'peoples': json.loads(json.dumps(peoples, default=json_util.default)), 'total_records': total_records, 'page' : page}
+        user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
+        if user_details.get('user_type') == "SA":
+            total_records = mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).count()
+            for people in mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).sort("_id", -1).limit(table_rows).skip(offset):
+                peoples.append(people)
+            return {'peoples': json.loads(json.dumps(peoples, default=json_util.default)), 'total_records': total_records, 'page' : page}
+        elif user_details.get('user_type') == "SAe" and user_details.get('serviceManagement'):
+            total_records = mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).count()
+            for people in mongo.db.users.find( { "user_type": { "$nin": ["SA", "SAe", "SPCAe", "CCAe"] } } ).sort("_id", -1).limit(table_rows).skip(offset):
+                peoples.append(people)
+            return {'peoples': json.loads(json.dumps(peoples, default=json_util.default)), 'total_records': total_records, 'page' : page}
+        else:
+            return { "message": "You are not authorized to view this page"}, 403
+
 
     @jwt_required
     def post(self, page):
@@ -325,10 +338,10 @@ class PeopleInvitationEmail(Resource):
     def post(self):
         data = _people_parser.parse_args()
         token = s.dumps(data['email'], salt='people-email-confirm')
-        link_react = "http://localhost:3000/user/people/password-setup/{}".format(token)
+        link_react = os.getenv('FRONTEND_DOMAIN')+"/user/people/password-setup/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender ="rukshan.shady@gmail.com",
+            sender =os.getenv('MAIL_USERNAME'),
             recipients=[data['email']],
             body="You have been invited on Service-System by the system admin. Please open the link to verify and setup your account. {}".format(link_react) 
         )

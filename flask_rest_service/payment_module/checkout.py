@@ -5,12 +5,14 @@ from flask_restful import Resource, request, url_for
 from flask_rest_service import app, api, mongo
 from bson.objectid import ObjectId
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 # Set your secret key. Remember to switch to your live secret key in production!
 # See your keys here: https://dashboard.stripe.com/account/apikeys
 
-stripe.api_key = 'sk_test_51HrMHgE8BAcK1TWiC1rrReLpfQm05TZvk5c0hfIlnuVZp2sTp78CANnR6QTfz3snvPHXlEfZKwc7gyzBkW0sX1CP00uNx2v3X2'
-annual_price_Id = "price_1HtFJGE8BAcK1TWiHmx4pGyD" 
-monthly_price_Id = "price_1Htte8E8BAcK1TWix7tlY3q6"
+stripe.api_key = os.getenv('STRIPE_API_KEY')
+annual_price_Id = os.getenv('ANNUAL_PRICE_ID')
+monthly_price_Id = os.getenv('MONTHLY_PRICE_ID')
 
 
 def CalulateAdvancePaymentAmount(*args, **kwargs):
@@ -98,8 +100,8 @@ class create_checkout_session(Resource):
                 'advance_amount': advance_amount
             },
             mode='payment',
-            success_url='http://localhost:3000/user/cases',
-            cancel_url='http://localhost:3000',
+            success_url=os.getenv('FRONTEND_DOMAIN')+'/user/cases',
+            cancel_url=os.getenv('FRONTEND_DOMAIN'),
         )
 
         return jsonify(id=checkout_session.id)
@@ -112,6 +114,7 @@ class create_subscription_checkout_session(Resource):
         else:
             price_Id = annual_price_Id
         current_user = get_jwt_identity()
+
         user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user)} )
         if user_details.get('user_type') == "SPCA" or user_details.get('user_type') == "CCA":
             no_employees = mongo.db.users.find({ 'owner': ObjectId(current_user)}).count()
@@ -131,8 +134,39 @@ class create_subscription_checkout_session(Resource):
                 'subscribe_type': type
             },
             mode="subscription",
-            success_url='http://localhost:3000/user/home',
-            cancel_url='http://localhost:3000',
+            success_url=os.getenv('FRONTEND_DOMAIN')+'/user/home',
+            cancel_url=os.getenv('FRONTEND_DOMAIN'),
+        )
+
+        return jsonify(id=checkout_session.id)
+
+class create_subscription_checkout_session_from_login(Resource):
+    def post(self, type, email):
+        if type == "monthly":
+            price_Id = monthly_price_Id
+        else:
+            price_Id = annual_price_Id
+        user_details = mongo.db.users.find_one( { 'email': email} )
+        if user_details.get('user_type') == "SPCA" or user_details.get('user_type') == "CCA":
+            no_employees = mongo.db.users.find({ 'owner': ObjectId(user_details.get('_id'))}).count()
+        else:
+            no_employees = 0
+        total_quantity = no_employees + 1
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                    "price": price_Id,
+                    # For metered billing, do not pass quantity
+                    "quantity": total_quantity
+                }],
+            metadata= { 
+                'current_user': user_details.get('_id'),
+                'clientName': user_details.get('name'),
+                'subscribe_type': type
+            },
+            mode="subscription",
+            success_url=os.getenv('FRONTEND_DOMAIN')+'/user/home',
+            cancel_url=os.getenv('FRONTEND_DOMAIN'),
         )
 
         return jsonify(id=checkout_session.id)

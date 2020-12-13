@@ -12,6 +12,8 @@ from bson.objectid import ObjectId
 import json
 from bson import json_util
 from datetime import datetime, timedelta
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 _login_parser =  reqparse.RequestParser()
 
@@ -121,12 +123,12 @@ class SendEmailConfirmation(Resource):
     def post(self):
         data = _emailConfirm_parser.parse_args()
         token = s.dumps(data['email'], salt='email-confirm')
-        link = url_for('emailconfirmation', token=token, _external=True)
+        link_react = os.getenv('FRONTEND_DOMAIN')+"/confirm-registration/{}".format(token)
         msg = Message(
             subject = "Email confirmation for Service-System",
-            sender = "rukshan.shady@gmail.com",
+            sender = os.getenv('MAIL_USERNAME'),
             recipients=[data['email']],
-            body="Thank you for signing up on Service-System. Please open the verification link to verify your email. Incase you have not setupyour password yourself then please use the temporary password systemserivce12 {}".format(link) 
+            body="Thank you for signing up on Service-System. Please open the verification link to verify your email. {}".format(link_react) 
         )
         mail.send(msg)                                                                                             
         return {"message": "Email sent successfully"}, 201
@@ -184,7 +186,8 @@ class CheckUserValidity(Resource):
                 "user_type": user.get("user_type"),
                 "profile_detailed_completion": user.get("profile_detailed_completion"),
                 "profile_basic_completion": user.get("profile_basic_completion"),
-                "name": user.get("name")
+                "name": user.get("name"),
+                "serviceManagement": user.get("serviceManagement"),
             }, 200
         return {
             "isAuthenticated": False,

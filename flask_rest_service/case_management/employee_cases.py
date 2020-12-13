@@ -22,7 +22,9 @@ def SearchandFilterandSorting(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -31,7 +33,7 @@ def SearchandFilterandSorting(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }, {"client": ObjectId(kwargs.get('owner') ) }]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
         
@@ -56,7 +58,9 @@ def SearchandFilterandSorting(*args, **kwargs):
 # FOR SEARCH AND SORTING
 def SearchandSorting(*args, **kwargs):
     cases = []
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -65,7 +69,7 @@ def SearchandSorting(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }, {"client": ObjectId(kwargs.get('owner') ) }]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # regex query to find the words in the table 
@@ -98,7 +102,9 @@ def FilterandSorting(*args, **kwargs):
             query = { x : y}
             query_list.append(query)
 
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -107,7 +113,7 @@ def FilterandSorting(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }, {"client": ObjectId(kwargs.get('owner') ) }]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     result = mongo.db.cases.find ( 
@@ -130,7 +136,9 @@ def SearchandFilter(*args, **kwargs):
         for x,y in filter_dict.items():
             query = { x : y}
             query_list.append(query)
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -139,7 +147,7 @@ def SearchandFilter(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }, {"client": ObjectId(kwargs.get('owner') ) }]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     result = mongo.db.cases.find( 
@@ -163,7 +171,9 @@ def SearchandFilter(*args, **kwargs):
 # FOR THE SEARCH
 def Search(*args, **kwargs):
     cases = []
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -172,7 +182,7 @@ def Search(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) } , {"client": ObjectId(kwargs.get('owner') ) }]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
     # regex query to find the words in the table 
@@ -198,7 +208,9 @@ def Search(*args, **kwargs):
 # FOR THE FILTERS
 def Filter(*args, **kwargs):
     cases = []
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_condition = {}
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -207,7 +219,7 @@ def Filter(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]}
+        main_condition = {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) } , {"client": ObjectId(kwargs.get('owner') ) } ]}
     else:
         main_condition = {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } }
 
@@ -226,7 +238,9 @@ def Filter(*args, **kwargs):
 # FOR THE SORTING
 def Sorting(*args, **kwargs):
     cases = []
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_query = mongo.db.cases.find()
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -235,7 +249,7 @@ def Sorting(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]} )
+        main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) } , {"client": ObjectId(kwargs.get('owner') ) } ]} )
     else:
         main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } } )
     # take the value from list 
@@ -247,7 +261,9 @@ def Sorting(*args, **kwargs):
 # FOR THE DEFAULT 
 def InitialRecords(*args, **kwargs):
     cases = []
-    if kwargs.get('caseManagement'):
+    if kwargs.get('user_type') == "SAe" and kwargs.get('caseManagement'):
+        main_query = mongo.db.cases.find()
+    elif kwargs.get('caseManagement'):
         # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
         # Condition 2: serviceProvider has current_user
 
@@ -256,7 +272,7 @@ def InitialRecords(*args, **kwargs):
         # condition to check if the case that has the current user listed in the forwardTo has not been to progress
         # This is because the cases that are in progress cannot be seen by other service providers
         condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-        main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }]} )
+        main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(kwargs.get('owner') ) }, {"client": ObjectId(kwargs.get('owner') ) } ]} )
     else:
         main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(kwargs.get('current_user')) } } } )
 
@@ -278,7 +294,9 @@ class EmployeeCases(Resource):
         count = page-1
         offset = table_rows*count
         user_details = mongo.db.users.find_one( { '_id': ObjectId(current_user) } )
-        if user_details.get('caseManagement'):
+        if user_details.get('user_type') == "SAe" and user_details.get('caseManagement'):
+            main_query = mongo.db.cases.find()
+        elif user_details.get('caseManagement'):
             # Condition 1: forwardTo has current_user in case if case status != On-progress or completed 
             # Condition 2: serviceProvider has current_user
 
@@ -287,7 +305,7 @@ class EmployeeCases(Resource):
             # condition to check if the case that has the current user listed in the forwardTo has not been to progress
             # This is because the cases that are in progress cannot be seen by other service providers
             condition_two = { "$or" : [ {"status": {"$ne": "On-progress"}}, {"status": {"$ne": "Completed"} } ] }
-            main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(user_details.get('owner') ) }]} )
+            main_query = mongo.db.cases.find( {"$or": [{"$and": [condition_one, condition_two]}, {"serviceProvider": ObjectId(user_details.get('owner') ) }, {"client": ObjectId(user_details.get('owner') ) } ]} )
         else:
             main_query = mongo.db.cases.find( {"assigned_employee_list": { "$elemMatch" : {"$eq" : ObjectId(current_user) } } } )
 
@@ -310,7 +328,8 @@ class EmployeeCases(Resource):
             "table_rows": table_rows,
             "offset": offset,
             "caseManagement": user_details.get('caseManagement'),
-            "owner": user_details.get('owner')
+            "owner": user_details.get('owner'),
+            "user_type": user_details.get('user_type')
         }
 
         # for all three , search, filter and sorting

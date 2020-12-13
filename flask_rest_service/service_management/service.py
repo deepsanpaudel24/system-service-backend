@@ -365,7 +365,16 @@ class ServiceAction(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPCAe" or user.get('user_type') == "SPS":
+        service_details = mongo.db.services.find_one({'_id': ObjectId(id)})
+        listOfUserId = []
+        listOfUserId.append(service_details.get('owner'))
+        listOfUserId.append(service_details.get('serviceOwner'))
+        if user.get('user_type') == "SPCAe":
+            if ObjectId(user.get('owner')) in listOfUserId:
+                service_details = mongo.db.services.find_one({'_id': ObjectId(id)})
+                return json.loads(json.dumps(service_details, default=json_util.default))
+            return {"message": "You are not authorized to view this page"}, 403
+        elif ObjectId(current_user) in listOfUserId:
             service_details = mongo.db.services.find_one({'_id': ObjectId(id)})
             return json.loads(json.dumps(service_details, default=json_util.default))
         return {"message" : "You are not authorized to view this page"}, 403

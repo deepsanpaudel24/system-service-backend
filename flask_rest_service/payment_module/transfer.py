@@ -10,11 +10,11 @@ from bson.objectid import ObjectId
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from functools import reduce
 from bson.json_util import dumps
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
-# Setup Stripe python client library
-# load_dotenv(find_dotenv())
-# stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-stripe.api_key = 'sk_test_51HrMHgE8BAcK1TWiC1rrReLpfQm05TZvk5c0hfIlnuVZp2sTp78CANnR6QTfz3snvPHXlEfZKwc7gyzBkW0sX1CP00uNx2v3X2'
+stripe.api_key = os.getenv('STRIPE_API_KEY')
+
 
 
 class Transfer(Resource):

@@ -3,6 +3,7 @@ from flask_rest_service.google_api.googleOAuth import ( Authorize,
     Revoke,
     ClearCredentials,
     GoogleDriveCreateFile,
-    GoogleDriveFetchFiles
+    GoogleDriveFetchFiles,
+    RevokeGoogle
     )
 from flask_rest_service.google_api.drive_details_api import  GoogleCredentialsDetails 

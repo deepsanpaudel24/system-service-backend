@@ -8,12 +8,11 @@ from datetime import datetime
 from flask_rest_service.notifications import InsertNotifications
 from bson.objectid import ObjectId
 from datetime import datetime, timedelta
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
-# Set your secret key. Remember to switch to your live secret key in production!
-# See your keys here: https://dashboard.stripe.com/account/apikeys
-
-stripe.api_key = 'sk_test_51HrMHgE8BAcK1TWiC1rrReLpfQm05TZvk5c0hfIlnuVZp2sTp78CANnR6QTfz3snvPHXlEfZKwc7gyzBkW0sX1CP00uNx2v3X2'
-webhook_signing_secret = 'whsec_eSTZV9YteFfUv1inEile2LRE5xlg6quk'
+stripe.api_key = os.getenv('STRIPE_API_KEY')
+webhook_signing_secret = os.getenv('WEBHOOK_SIGNING_SECRET')
 
 def InsertCheckoutRecords(result):
     metadata = result['metadata']

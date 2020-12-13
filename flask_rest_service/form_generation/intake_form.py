@@ -299,12 +299,20 @@ class IntakeForm(Resource):
         current_user = get_jwt_identity()
         data = request.get_json()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        id = mongo.db.intake_forms.insert({
-            'formFields': data['formFields'],
-            'title':data['formTitle'],
-            'createdBy': ObjectId(current_user),
-            'createdDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection intake_forms                                                                                           
+        if user.get('user_type') == "SPCAe":
+            id = mongo.db.intake_forms.insert({
+                'formFields': data['formFields'],
+                'title':data['formTitle'],
+                'createdBy': ObjectId(user.get('owner')),
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection intake_forms
+        else:
+            id = mongo.db.intake_forms.insert({
+                'formFields': data['formFields'],
+                'title':data['formTitle'],
+                'createdBy': ObjectId(current_user),
+                'createdDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection intake_forms                                                                                           
         return {"message": "Intake Form created successfully! "}, 201
     
     @jwt_required
@@ -327,11 +335,18 @@ class IntakeFormDetails(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "SPCA" or user.get('user_type') == "SPS" or user.get("user_type") == "SPCAe":
-            ClientIntakeForm = mongo.db.intake_forms.find_one({'_id': ObjectId(id)})
-            if ClientIntakeForm:
-                return json.loads(json.dumps(ClientIntakeForm, default=json_util.default))
-            return {"message": "Intake Form not found"}, 404
+        form_details = mongo.db.intake_forms.find_one({'_id': ObjectId(id)})
+        listOfUserId = []
+        listOfUserId.append(form_details.get('createdBy'))
+        if user.get('user_type') == "SPCAe":
+            if ObjectId(user.get('owner')) in listOfUserId:
+                form_details = mongo.db.intake_forms.find_one({'_id': ObjectId(id)})
+                return json.loads(json.dumps(form_details, default=json_util.default))
+            return {"message": "You are not authorized to view this page"}, 403
+        elif ObjectId(current_user) in listOfUserId:
+            form_details = mongo.db.intake_forms.find_one({'_id': ObjectId(id)})
+            return json.loads(json.dumps(form_details, default=json_util.default))
+        return {"message" : "You are not authorized to view this page"}, 403
     
     @jwt_required
     def put(self, id):

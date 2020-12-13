@@ -8,13 +8,14 @@ from bson import json_util
 import os
 import requests
 from datetime import datetime, timedelta
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 
-
-CLIENT_ID = '715950681414-l4h7td0sunglcjc0g44mtf15cudcak31.apps.googleusercontent.com'
-CLIENT_SECRET = 'kQV-BoxSPv6NMXYLGYxobzfM'  # Read from a file or environmental variable in a real app
+CLIENT_ID = os.getenv('CLIENT_ID')
+CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 SCOPE = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.readonly'
-REDIRECT_URI = 'http://127.0.0.1:5000/api/v1/oauth2callback'
+REDIRECT_URI = os.getenv('BACKEND_DOMAIN')+'/api/v1/oauth2callback'
 
 
 class Authorize(Resource):
@@ -39,7 +40,7 @@ class Authorize(Resource):
         if datetime.now() >= google_credentials['expiretime']:
             return redirect(url_for('oauth2callback'))
         else:
-            return redirect('http://localhost:3000/user/profile-setting')
+            return redirect(os.getenv('FRONTEND_DOMAIN')+ '/user/profile-setting')
             
 
 class OAuth2CallBack(Resource):
@@ -82,6 +83,14 @@ class Revoke(Resource):
             return jsonify('Credentials successfully revoked.')
         else:
             return jsonify('An error occurred.')
+
+class RevokeGoogle(Resource):
+    @jwt_required
+    def delete(self):
+        current_user = get_jwt_identity()
+        # first revoke from google and then delete it
+        google_drive_revoke = mongo.db.google_credentials.remove({'userId': ObjectId(current_user)})
+        return {"message": "Google drive revoked sucessfully"}, 200
 
 class ClearCredentials(Resource):
     def get(self):

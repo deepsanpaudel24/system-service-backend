@@ -283,5 +283,7 @@ class CustomTasksDetails(Resource):
     def get(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        task_details = mongo.db.custom_tasks.find_one({'_id': ObjectId(id)})
-        return json.loads(json.dumps(task_details, default=json_util.default))
+        task_details = mongo.db.custom_tasks.find_one({'_id': ObjectId(id), 'workBy': ObjectId(current_user) })
+        if task_details:
+            return json.loads(json.dumps(task_details, default=json_util.default))
+        return {"message": "You are not authorized to view this page"}, 403

@@ -18,13 +18,15 @@ import uuid
 # For webscoket 
 from flask_socketio import SocketIO, send
 
-MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+#MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
 cors = CORS(app)
-app.secret_key = "service-system"
+app.secret_key = os.getenv('APP_SECRET_KEY')
 socketio = SocketIO(app, cors_allowed_origins="*")
-app.config['MONGO_URI'] = MONGO_URL
-app.config['FRONTEND_DOMAIN'] = "http://localhost:3000"
+app.config['MONGO_URI'] = os.getenv('MONGO_URL')
+app.config['FRONTEND_DOMAIN'] = os.getenv('FRONTEND_DOMAIN')
 app.config['JWT_BLACKLIST_ENABLED'] = True
 
 # Only allow JWT cookies to be sent over https. In production, this
@@ -46,8 +48,8 @@ mail_settings = {
     "MAIL_PORT": 465,
     "MAIL_USE_TSL": False,
     "MAIL_USE_SSL": True,
-    "MAIL_USERNAME": "rukshan.shady@gmail.com",
-    "MAIL_PASSWORD": "*Roshan222#"
+    "MAIL_USERNAME": os.getenv('MAIL_USERNAME'),
+    "MAIL_PASSWORD": os.getenv('MAIL_PASSWORD')
 }
 
 app.config.update(mail_settings)
@@ -116,7 +118,7 @@ def login():
                     'message': 'Your account has been deactivated. Please contact System admin.'
                 }, 403
             return {
-                'message': 'Your account has expired. Please contact System admin.'
+                'message': 'Expired'
             }, 403
         return {
                 'message': 'You need to verify your account!'
@@ -204,11 +206,10 @@ def SecureStaticAssest(filename):
     listOfUserId = []
     listOfUserId.append(case_details.get('serviceProvider'))
     listOfUserId.append(case_details.get('client'))
-    print(current_user, 'this is curret users')
     if case_details.get('assigned_employee_list'):
         listOfUserId.extend(case_details.get('assigned_employee_list'))
 
-    if case_details.get('status') != 'On-progress':
+    if case_details.get('status') == 'Requested' or case_details.get('status') == 'Forwarded' or case_details.get('status') == 'Proposal-Forwarded':
         if case_details.get('forwardTo'):
             listOfUserId.extend(case_details.get('forwardTo'))
     
@@ -251,13 +252,14 @@ from flask_rest_service.custom_task import AddCustomTask, CustomTasksDetails, Cu
 
 from flask_rest_service.form_generation import IntakeForm, IntakeFormList, IntakeFormDetails
 
-from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
+from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, RevokeGoogle, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
 from flask_rest_service.communication import socketio, InitialChatMessage, OldChatMessages
 
 from flask_rest_service.payment_module import ( create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, 
                                                 create_subscription_checkout_session, CheckoutTransactions, ClientCaseTransactions, SATransactions,
-                                                SACaseTransactions, UserStripeAccInfo, SPTransactions, SPCaseTransactions, SPStripeAccInfo
+                                                SACaseTransactions, UserStripeAccInfo, SPTransactions, SPCaseTransactions, SPStripeAccInfo,
+                                                create_subscription_checkout_session_from_login
                                             )
 
 
@@ -363,6 +365,7 @@ api.add_resource(OAuth2CallBack, '/api/v1/oauth2callback')
 api.add_resource(GoogleDriveCreateFile, '/api/v1/google-create-file')
 api.add_resource(GoogleDriveFetchFiles, '/api/v1/google-fetch-files/<folder_name>')
 api.add_resource(Revoke, '/api/v1/revoke')
+api.add_resource(RevokeGoogle, '/api/v1/revoke-google')
 api.add_resource(ClearCredentials, '/api/v1/clear')
 
 api.add_resource(InitialChatMessage, '/api/v1/chat-initial-message/<room>')
@@ -383,3 +386,4 @@ api.add_resource(SPTransactions, '/api/v1/sp-transactions/<int:page>')
 api.add_resource(SPCaseTransactions, '/api/v1/sp-case-transactions/<caseId>')
 api.add_resource(UserStripeAccInfo, '/api/v1/user/stripe-acc-info')
 api.add_resource(SPStripeAccInfo, '/api/v1/sadmin/check-sp-stripe/<spId>')
+api.add_resource(create_subscription_checkout_session_from_login, '/api/v1/create-subscription-checkout-session/<type>/<email>')

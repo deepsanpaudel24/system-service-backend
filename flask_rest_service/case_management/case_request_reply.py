@@ -162,7 +162,7 @@ class CaseProposals(Resource):
     def get(self, caseId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "CCA" or user.get('user_type') == "CS" or user.get('user_type') == "SA":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "SA" or user.get('user_type') == "CCAe" or user.get('user_type') == "SAe":
             case = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
             if case:
                 proposals = []

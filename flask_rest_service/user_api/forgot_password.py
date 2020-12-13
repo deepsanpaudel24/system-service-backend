@@ -9,6 +9,8 @@ from flask_jwt_extended import create_access_token, create_refresh_token, get_jw
 from bson.objectid import ObjectId
 import json
 from bson import json_util
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 _forgot_password_parser = reqparse.RequestParser()
 
@@ -37,10 +39,10 @@ class ForgotPassword(Resource):
         if user:
             token = s.dumps(data['email'], salt='forgot-password-confirm')
             link = url_for('resetpassword', token=token, _external=True)
-            link_react = "http://localhost:3000/user/reset-password/{}".format(token)
+            link_react = os.getenv('FRONTEND_DOMAIN')+"/user/reset-password/{}".format(token)
             msg = Message(
                 subject = "Password reset link for Service-System",
-                sender = os.environ['GMAIL_USERNAME'],
+                sender = os.getenv('MAIL_USERNAME'),
                 recipients=[data['email']],
                 body="Please open this link and fill up the new password to recover your account {}".format(link_react) 
             )
