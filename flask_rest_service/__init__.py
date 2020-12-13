@@ -196,7 +196,7 @@ def UpdateUserType():
     return {"message": "User does not exist."}, 404
         
 
-@app.route("/static/allFiles/<filename>", methods=["GET", "POST"])
+@app.route("/api/v1/static/allFiles/<filename>", methods=["GET", "POST"])
 @jwt_required
 def SecureStaticAssest(filename):
     data= request.get_json()
