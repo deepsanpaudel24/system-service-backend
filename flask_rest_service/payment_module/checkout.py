@@ -68,6 +68,9 @@ class create_checkout_session(Resource):
     @jwt_required
     def post(self):
         current_user = get_jwt_identity()
+        user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "CCAe":
+            current_user = user.get('owner')
         data = request.get_json()
         if data['caseStatus'] == "Confirm-Completion" : 
             result = CalulateFinalPaymentAmount(caseId = data['caseId'])

@@ -4,4 +4,3 @@ import os
 if __name__ == "__main__":
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     socketio.run(app, debug=True)
-    #app.run(debug=True)

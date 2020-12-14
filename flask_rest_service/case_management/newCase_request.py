@@ -52,12 +52,14 @@ class AddNewCaseRequest(Resource):
         current_user = get_jwt_identity()
         data = _newCaseRequest_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CCAe":
             userType = "c"
         else:
             userType = "sp"
         caseTags = data['caseTags'].split(',')
-
+        if user.get('user_type') == "CCAe":
+            user = mongo.db.users.find_one({'_id': ObjectId(user.get('owner'))})
+            current_user = user.get('_id')
         myFiles = request.files
         for key in myFiles:
             _parse.add_argument(
@@ -102,7 +104,7 @@ class UpdateRelatedDocuments(Resource):
     def put(self, id):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CCAe":
             userType = "c"
         else:
             userType = "sp"

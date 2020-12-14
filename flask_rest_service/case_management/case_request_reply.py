@@ -115,23 +115,42 @@ class ReplyCaseRequest(Resource):
         if resp1.status_code != 200:
             resp2 = requests.get('https://api.exchangerate.host/latest', params=params2)
             conversion_rate = resp2.json()['rates']['USD']
-
-        id = mongo.db.proposals.insert({
-            'title': data['title'],
-            'desc': data['desc'],
-            'rateType': data['rateType'],
-            'rate': data['rate'],
-            'averageTimeTaken': data['averageTimeTaken'],
-            'spDeadline': data['spDeadline'],
-            'caseId': ObjectId(caseId),
-            'serviceProvider': ObjectId(current_user),
-            'serviceProvidername': user.get('name'),
-            'paymentType': data['paymentType'],
-            'advancePayment': data['advancePayment'],
-            'conversion_rate': conversion_rate,
-            'files': filesLocationList,
-            'sentDate': datetime.today().strftime('%Y-%m-%d')
-        })                           # insert the data in the collection proposals   
+        
+        if user.get('user_type') == "SPCAe":
+            user_owner = mongo.db.users.find_one({'_id': ObjectId(user.get('owner'))})
+            id = mongo.db.proposals.insert({
+                'title': data['title'],
+                'desc': data['desc'],
+                'rateType': data['rateType'],
+                'rate': data['rate'],
+                'averageTimeTaken': data['averageTimeTaken'],
+                'spDeadline': data['spDeadline'],
+                'caseId': ObjectId(caseId),
+                'serviceProvider': ObjectId(user.get('owner')),
+                'serviceProvidername': user_owner.get('name'),
+                'paymentType': data['paymentType'],
+                'advancePayment': data['advancePayment'],
+                'conversion_rate': conversion_rate,
+                'files': filesLocationList,
+                'sentDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection proposals  
+        else:
+            id = mongo.db.proposals.insert({
+                'title': data['title'],
+                'desc': data['desc'],
+                'rateType': data['rateType'],
+                'rate': data['rate'],
+                'averageTimeTaken': data['averageTimeTaken'],
+                'spDeadline': data['spDeadline'],
+                'caseId': ObjectId(caseId),
+                'serviceProvider': ObjectId(current_user),
+                'serviceProvidername': user.get('name'),
+                'paymentType': data['paymentType'],
+                'advancePayment': data['advancePayment'],
+                'conversion_rate': conversion_rate,
+                'files': filesLocationList,
+                'sentDate': datetime.today().strftime('%Y-%m-%d')
+            })                           # insert the data in the collection proposals   
         mongo.db.cases.update_one({'_id': ObjectId(caseId)}, {
                     '$set': {
                     'status': "Proposal-Forwarded"
@@ -191,7 +210,7 @@ class PropsalDetails(Resource):
         proposal = mongo.db.proposals.find_one({'_id': ObjectId(proposalId)})
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
-        if user.get('user_type') == "CCA" or user.get('user_type') == "CS":
+        if user.get('user_type') == "CCA" or user.get('user_type') == "CCAe":
             accepted_value = False
             status_value = "Declined"
             if data['accepted'] == 'true':

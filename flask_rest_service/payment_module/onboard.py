@@ -23,6 +23,15 @@ def _generate_account_link(account_id, origin):
     )
     return account_link.url
 
+def _generate_account_link_continue(account_id):
+    account_link = stripe.AccountLink.create(
+        type='account_onboarding',
+        account=account_id,
+        refresh_url=f"{app.config['FRONTEND_DOMAIN']}/api/v1/onboard-user/refresh",
+        return_url=f"{app.config['FRONTEND_DOMAIN']}/user/home",
+    )
+    return account_link.url
+
 # update stripe id in the users documents for service providers
 def UpdateStripeAccountId(accountId, current_user):
     mongo.db.users.update_one({'_id': ObjectId(current_user) }, {
@@ -72,7 +81,7 @@ class UserStripeAccInfo(Resource):
             resp = stripe.Account.retrieve(stripe_acc_id)
 
             if not resp.get('details_submitted'):
-                account_link_url = _generate_account_link(stripe_acc_id)
+                account_link_url = _generate_account_link_continue(stripe_acc_id)
                 try:
                     resp['url']=account_link_url
                     return resp

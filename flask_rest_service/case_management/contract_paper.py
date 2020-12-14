@@ -33,6 +33,8 @@ class UploadContractPaper(Resource):
         current_user = get_jwt_identity()
         data = _UploadContractPaper_parser.parse_args()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCAe":
+            user = mongo.db.users.find_one({'_id': ObjectId(user.get('owner'))})
         case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
 
         myFiles = request.files
@@ -77,6 +79,8 @@ class ConfirmContractPaper(Resource):
     def put(self, caseId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "SPCAe":
+            user = mongo.db.users.find_one({'_id': ObjectId(user.get('owner'))})
         case = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
         if case:
             if case.get('paymentType') == "advance-payment":
@@ -113,6 +117,8 @@ class ContractDetails(Resource):
     def put(self, caseId):
         current_user = get_jwt_identity()
         user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
+        if user.get('user_type') == "CCAe":
+            user = mongo.db.users.find_one({'_id': ObjectId(user.get('owner'))})
         case_details = mongo.db.cases.find_one({'_id': ObjectId(caseId)})
 
         myFiles = request.files
