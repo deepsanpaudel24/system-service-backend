@@ -14,10 +14,6 @@ from werkzeug.utils import secure_filename
 import uuid
 from flask_restful import Resource
 from datetime import datetime
-# from cryptography.fernet import Fernet
-# from cryptography.hazmat.primitives import hashes
-# from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-# from cryptography.hazmat.backends import default_backend
 import bson
 from .InitialChatMessage import encrypt_me, decrypt_me, fetch_messages, MESSAGE_FETCH_LIMIT
 

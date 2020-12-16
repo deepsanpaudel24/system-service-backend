@@ -1,4 +1,5 @@
-from flask_rest_service import app, socketio
+from flask_rest_service import app
+from flask_rest_service.communication import socketio
 import os 
 
 if __name__ == "__main__":

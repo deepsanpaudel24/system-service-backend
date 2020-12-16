@@ -15,16 +15,12 @@ from bson.objectid import ObjectId
 from flask_rest_service.blacklist import BLACKLIST
 from datetime import datetime, timedelta
 import uuid
-# For webscoket 
-from flask_socketio import SocketIO, send
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
-#MONGO_URL ="mongodb+srv://service-system:service-system@cluster0.nheoe.mongodb.net/dbservicesystem?retryWrites=true"
 app = Flask(__name__)
 cors = CORS(app)
 app.secret_key = os.getenv('APP_SECRET_KEY')
-socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['MONGO_URI'] = os.getenv('MONGO_URL')
 app.config['FRONTEND_DOMAIN'] = os.getenv('FRONTEND_DOMAIN')
 app.config['JWT_BLACKLIST_ENABLED'] = True
@@ -56,10 +52,6 @@ app.config.update(mail_settings)
 mail = Mail(app)
 
 jwt = JWTManager(app)
-
-@socketio.on('my_event')
-def handle_my_custom_event(json):
-    print('received json: ' + str(json))
 
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
@@ -254,7 +246,7 @@ from flask_rest_service.form_generation import IntakeForm, IntakeFormList, Intak
 
 from flask_rest_service.google_api import ( Authorize, OAuth2CallBack, GoogleDriveCreateFile, RevokeGoogle, GoogleDriveFetchFiles, Revoke, ClearCredentials, GoogleCredentialsDetails )
 
-from flask_rest_service.communication import socketio, InitialChatMessage, OldChatMessages
+from flask_rest_service.communication import InitialChatMessage, OldChatMessages
 
 from flask_rest_service.payment_module import ( create_checkout_session, Webhook, Onboard_user, Onboard_user_refresh, TransferInfo, Transfer, 
                                                 create_subscription_checkout_session, CheckoutTransactions, ClientCaseTransactions, SATransactions,
@@ -262,6 +254,7 @@ from flask_rest_service.payment_module import ( create_checkout_session, Webhook
                                                 create_subscription_checkout_session_from_login
                                             )
 
+from flask_rest_service.dashboard_component import ServiceProviderStats, ClientStats
 
 
 #api.add_resource(UserLogin, '/api/v1/user/login')
@@ -387,3 +380,6 @@ api.add_resource(SPCaseTransactions, '/api/v1/sp-case-transactions/<caseId>')
 api.add_resource(UserStripeAccInfo, '/api/v1/user/stripe-acc-info')
 api.add_resource(SPStripeAccInfo, '/api/v1/sadmin/check-sp-stripe/<spId>')
 api.add_resource(create_subscription_checkout_session_from_login, '/api/v1/create-subscription-checkout-session/<type>/<email>')
+
+api.add_resource(ServiceProviderStats, '/api/v1/sp-dashboard/stats')
+api.add_resource(ClientStats, '/api/v1/client-dashboard/stats')
