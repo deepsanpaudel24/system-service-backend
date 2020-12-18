@@ -321,16 +321,24 @@ class ClientCasesDetails(Resource):
                 case_details['logged_in_user_name'] = user.get('name')
                 case_details['logged_in_user_id'] = user.get('_id')
                 result  = list(mongo.db.users.find(
-                    { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                    {
+                        "$and": [
+                            { 'user_type': 'SPCA' },
+                            { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                        ]
+                    }
                     ))
+                # To send the number of fowarded cases till now
                 for service_provider in result:
                     main_query = mongo.db.cases.find( {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(service_provider.get('_id')) } } } )
                     total_records = main_query.count()
                     service_provider['no_forwarded_cases'] = total_records
+                # To send the number of on progress cases now
                 for service_provider in result:
                     main_query = mongo.db.cases.find( { "$and": [ {'serviceProvider': ObjectId(service_provider.get('_id'))} , {"status": "On-progress"} ] } )
                     total_records = main_query.count()
                     service_provider['no_progress_cases'] = total_records
+                
                 forwardedSP_list = []
                 if "forwardTo" in case_details:
                     forwardedSP_list = mongo.db.users.find({
@@ -348,8 +356,13 @@ class ClientCasesDetails(Resource):
             case_details['logged_in_user_name'] = user.get('name')
             case_details['logged_in_user_id'] = user.get('_id')
             result  = list(mongo.db.users.find(
-                { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
-                ))
+                    {
+                        "$and": [
+                            { 'user_type': 'SPCA' },
+                            { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                        ]
+                    }
+                    ))
             for service_provider in result:
                 main_query = mongo.db.cases.find( {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(service_provider.get('_id')) } } } )
                 total_records = main_query.count()
@@ -387,7 +400,12 @@ class ClientCasesDetails(Resource):
                 case_details['logged_in_user_name'] = user.get('name')
                 case_details['logged_in_user_id'] = user.get('_id')
                 result  = list(mongo.db.users.find(
-                    { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                    {
+                        "$and": [
+                            { 'user_type': 'SPCA' },
+                            { "service_categories": { "$elemMatch": { "$in": case_details.get('caseTags') } } }
+                        ]
+                    }
                     ))
                 for service_provider in result:
                     main_query = mongo.db.cases.find( {"forwardTo": { "$elemMatch" : {"$eq" : ObjectId(service_provider.get('_id')) } } } )

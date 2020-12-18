@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify, make_response, redirect, abort, send_from_directory
 from flask_cors import CORS
 from flask_restful import Api, reqparse
+from flask_socketio import SocketIO
 from werkzeug.security import generate_password_hash, check_password_hash, safe_str_cmp
 from flask_pymongo import PyMongo
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature     # To generate the token for email verification
@@ -18,9 +19,10 @@ import uuid
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/public', static_folder='public')
 cors = CORS(app)
 app.secret_key = os.getenv('APP_SECRET_KEY')
+socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['MONGO_URI'] = os.getenv('MONGO_URL')
 app.config['FRONTEND_DOMAIN'] = os.getenv('FRONTEND_DOMAIN')
 app.config['JWT_BLACKLIST_ENABLED'] = True
@@ -31,13 +33,14 @@ app.config['JWT_BLACKLIST_ENABLED'] = True
 
 app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 app.config['JWT_COOKIE_CSRF_PROTECT'] = False
-app.config['UPLOAD_FOLDER'] = "flask_rest_service/static/allFiles"
-app.config['UPLOAD_FOLDER_VIDEO'] = "flask_rest_service/static/videos"
+app.config['UPLOAD_FOLDER'] = "flask_rest_service/public/allFiles"
+app.config['UPLOAD_FOLDER_VIDEO'] = "flask_rest_service/public/videos"
 app.config['JWT_TOKEN_LOCATION'] = ['cookies']
 app.config['MAX_TABLE_ROWS'] = 10
 mongo = PyMongo(app)
 
 api = Api(app)
+#app = Flask('flaskapp', static_url_path='/public', static_folder='public')
 
 mail_settings = {
     "MAIL_SERVER": 'smtp.gmail.com',
@@ -207,7 +210,7 @@ def SecureStaticAssest(filename):
     
     if ObjectId(current_user) in listOfUserId:
             BASE_DIR = os.path.dirname(__file__)
-            assest_folder = os.path.join(BASE_DIR, 'static/allFiles')
+            assest_folder = os.path.join(BASE_DIR, 'public/allFiles')
             return send_from_directory(assest_folder, filename, as_attachment=True), 200
     else:
         abort(403)
@@ -254,7 +257,7 @@ from flask_rest_service.payment_module import ( create_checkout_session, Webhook
                                                 create_subscription_checkout_session_from_login
                                             )
 
-from flask_rest_service.dashboard_component import ServiceProviderStats, ClientStats
+from flask_rest_service.dashboard_component import ServiceProviderStats, ClientStats, SuperadminStats
 
 
 #api.add_resource(UserLogin, '/api/v1/user/login')
@@ -383,3 +386,4 @@ api.add_resource(create_subscription_checkout_session_from_login, '/api/v1/creat
 
 api.add_resource(ServiceProviderStats, '/api/v1/sp-dashboard/stats')
 api.add_resource(ClientStats, '/api/v1/client-dashboard/stats')
+api.add_resource(SuperadminStats, '/api/v1/sa-dashboard/stats')

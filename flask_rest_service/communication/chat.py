@@ -1,8 +1,8 @@
 from flask import Flask, render_template, request, jsonify
-from flask_socketio import SocketIO, send, emit, join_room, leave_room, disconnect, ConnectionRefusedError
+from flask_socketio import send, emit, join_room, leave_room, disconnect, ConnectionRefusedError
 from time import localtime, strftime
 # from flask_pymongo import PyMongo
-from flask_rest_service import app, api, mongo
+from flask_rest_service import app, api, mongo, socketio
 from bson.json_util import dumps
 import json
 import os
@@ -19,7 +19,7 @@ from .InitialChatMessage import encrypt_me, decrypt_me, fetch_messages, MESSAGE_
 
 
 # Initalize socketio
-socketio = SocketIO(app, cors_allowed_origins="*")
+#socketio = SocketIO(app, cors_allowed_origins="*")
 
 # decorators to check if the connected user are authorized
 

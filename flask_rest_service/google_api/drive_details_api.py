@@ -18,5 +18,8 @@ class GoogleCredentialsDetails(Resource):
         current_user = get_jwt_identity()
         user = mongo.db.google_credentials.find_one({'userId': ObjectId(current_user)})
         if user:
-            return {"message": "Google Account linked"}, 200
+            if user.get('credentials'):
+                return {"message": "Google Account linked"}, 200
+            else:
+                return { "message": "incomplete"}, 404
         return { "message": "Google Account not linked"}, 404

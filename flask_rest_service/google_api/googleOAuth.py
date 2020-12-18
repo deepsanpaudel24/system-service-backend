@@ -89,8 +89,21 @@ class RevokeGoogle(Resource):
     def delete(self):
         current_user = get_jwt_identity()
         # first revoke from google and then delete it
-        google_drive_revoke = mongo.db.google_credentials.remove({'userId': ObjectId(current_user)})
-        return {"message": "Google drive revoked sucessfully"}, 200
+        user_google_credentials = mongo.db.google_credentials.find_one ( { 'userId': ObjectId(current_user) } )
+        if user_google_credentials:
+            if not user_google_credentials.get('credentials'):
+                mongo.db.google_credentials.remove( {'userId': ObjectId(current_user) } )
+            else:
+                credentials  = user_google_credentials.get('credentials')
+                resp=requests.post('https://oauth2.googleapis.com/revoke',params={'token': credentials['access_token']},headers = {'content-type': 'application/x-www-form-urlencoded'})
+                status_code = getattr(resp, 'status_code')
+                if status_code == 200:
+                    google_drive_revoke = mongo.db.google_credentials.remove({'userId': ObjectId(current_user)})
+                    return {"message": "Google drive revoked sucessfully"}, 200
+                else:
+                    return {'message': 'An error occurred.'}, 400
+        else:
+            redirect(url_for('authorize'))
 
 class ClearCredentials(Resource):
     def get(self):
