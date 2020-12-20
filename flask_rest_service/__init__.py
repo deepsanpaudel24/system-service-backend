@@ -43,7 +43,7 @@ api = Api(app)
 #app = Flask('flaskapp', static_url_path='/public', static_folder='public')
 
 mail_settings = {
-    "MAIL_SERVER": 'smtp.gmail.com',
+    "MAIL_SERVER": os.getenv('MAIL_SERVER'),
     "MAIL_PORT": 465,
     "MAIL_USE_TSL": False,
     "MAIL_USE_SSL": True,
@@ -85,6 +85,13 @@ def login():
     email = request.json.get('email', None)
     password = request.json.get('password', None)
     user = mongo.db.users.find_one({'email': email})
+    # With the new database setup, till the time system admin does not have the hashed password,
+    # uncomment the line that has if user and user.get("password"):
+    # and comment out the line that has
+    # if user and check_password_hash(user.get("password"), password):
+    # Make sure you change it to the original state when the system admin has hashed password. 
+    
+    #if user and user.get("password"):
     if user and check_password_hash(user.get("password"), password):
         if user.get("is_verified"):
             if not datetime.strptime(user.get("expiryDate"), '%Y-%m-%d') < datetime.today() :
@@ -148,6 +155,11 @@ def ChangePassword():
     current_user = get_jwt_identity()
     user = mongo.db.users.find_one({'_id': ObjectId(current_user)})
     if user:
+        # With the new database setup, till the time system admin does not have the hashed password,
+        # uncomment the line that has if user.get("password"): and comment out the line that has
+        # if check_password_hash(user.get("password"), current_password):
+        # Make sure you change it to the original state when the system admin has hashed password. 
+        #if user.get("password"):
         if check_password_hash(user.get("password"), current_password):
             mongo.db.users.update_one({'_id': ObjectId(current_user)}, {
                         '$set': {
@@ -259,12 +271,10 @@ from flask_rest_service.payment_module import ( create_checkout_session, Webhook
 
 from flask_rest_service.dashboard_component import ServiceProviderStats, ClientStats, SuperadminStats
 
-
-#api.add_resource(UserLogin, '/api/v1/user/login')
 api.add_resource(CheckUserValidity, '/api/v1/user/validity')
 api.add_resource(UserRegister, '/api/v1/user/register')
 api.add_resource(SendEmailConfirmation, '/api/v1/user/send-email-confirmation')
-api.add_resource(EmailConfirmation, '/user/email/confirm/<token>')
+api.add_resource(EmailConfirmation, '/api/user/email/confirm/<token>')
 api.add_resource(ForgotPassword, '/api/v1/user/forgot-password')
 api.add_resource(ResetPassword, '/api/v1/user/reset-password/confirm/<token>')
 api.add_resource(UserEmployeeList, '/api/v1/user/employee/list/<int:page>')
